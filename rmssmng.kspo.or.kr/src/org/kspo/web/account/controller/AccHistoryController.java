@@ -68,7 +68,7 @@ public class AccHistoryController extends BaseController{
 		model.addAttribute("viewList",this.cmmnDtlList("202112020000543")); //뷰카운트
 		
 		return "web/account/AccHistorySelect";
-	}
+	} 
 	
 	/**
 	 * 사용자 접속이력 엑셀 다운로드
