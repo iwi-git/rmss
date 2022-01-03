@@ -56,7 +56,7 @@
 		//로그아웃
 		function fnLogout(){
 			location.href = "${pageContext.request.contextPath}/login/logout.kspo";
-		}
+		} 
 
 	  	//타임아웃 로그아웃
 	  	fnTimeOut = function(){
