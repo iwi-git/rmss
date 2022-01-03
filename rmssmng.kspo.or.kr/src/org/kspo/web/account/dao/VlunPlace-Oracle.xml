@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.account.dao.VlunPlaceDAO">
+	
+	<!-- 공익복무처 목록 조회 -->
+	<select id="selectVlunPlaceList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.account.selectVlunPlaceList*/
+		SELECT	A.RNUM
+				, A.TOTAL_RECORD_COUNT
+				,A.VLUN_PLC_SN
+				,A.VLUN_PLC_DV
+				,A.VLUN_PLC_FST
+				,A.VLUN_PLC_SCD
+				,A.VLUN_PLC_NM
+				,A.VLUN_PLC_ADDRESS
+				,A.PLC_MNGR_NM
+				,A.USE_YN
+				,A.VLUN_PLC_REPR
+				,A.VLUN_PLC_TEL_NO AS VLUN_PLC_TEL_NO
+				,A.PLC_MNGR_TEL_NO AS PLC_MNGR_TEL_NO
+				,A.PLC_MNGR_EMAIL  AS PLC_MNGR_EMAIL
+				,FA.PLC_MNGR_CP_NO AS PLC_MNGR_CP_NO
+				,A.MAIN_ACT_AREA
+				,A.MAIN_TGT
+				,CASE 	WHEN A.UPDR_ID IS NOT NULL THEN (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.UPDR_ID ) 
+						ELSE (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.REGR_ID ) 
+						END UPDR_NM
+	       		,CASE	WHEN A.UPDT_DTM IS NOT NULL THEN TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') 
+		   				ELSE TO_CHAR(A.REG_DTM,'YYYY-MM-DD') 
+		   				END UPDT_DT
+				,A.N_PAGE_NO
+				,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				,NVL(#{pageSize},10) AS PAGE_SIZE
+			FROM
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY A.VLUN_PLC_SN DESC) AS RNUM
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,A.VLUN_PLC_SN
+						,A.VLUN_PLC_DV
+						,A.VLUN_PLC_FST
+						,A.VLUN_PLC_SCD
+						,A.VLUN_PLC_NM
+						,A.VLUN_PLC_ADDRESS
+						,A.USE_YN
+						,A.VLUN_PLC_REPR
+						,A.VLUN_PLC_TEL_NO
+						,A.PLC_MNGR_NM
+						,A.PLC_MNGR_TEL_NO
+						,A.PLC_MNGR_EMAIL
+						,A.PLC_MNGR_CP_NO
+						,A.MAIN_ACT_AREA
+						,A.MAIN_TGT
+						,A.UPDR_ID
+						,A.REGR_ID
+		        		,A.UPDT_DTM 
+		        		,A.REG_DTM
+				FROM	TRMV_VLUN_PLACE_I A
+				WHERE	1=1
+				<if test='USE_YN != null and USE_YN != ""'>
+					AND A.USE_YN = #{USE_YN}
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					<choose>
+						<when test='keykind == ""'>
+								AND	(A.VLUN_PLC_REPR LIKE '%' || #{keyword} || '%'
+								OR	A.VLUN_PLC_NM LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test='keykind == "VLUN_PLC_REPR"'>
+							<if test='keyword != null and keyword != ""'>
+								AND		A.VLUN_PLC_REPR LIKE '%' || #{keyword} || '%'
+							</if>
+						</when>
+						<when test='keykind == "VLUN_PLC_NM"'>
+							<if test='keyword != null and keyword != ""'>
+								AND		A.VLUN_PLC_NM LIKE '%' || #{keyword} || '%'
+							</if>
+						</when>
+					</choose>
+				</if>
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+
+	<!-- 공익복무처 목록 엑셀 조회 -->
+	<select id="selectVlunPlaceExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.account.selectVlunPlaceExcelList*/
+		SELECT	ROW_NUMBER () OVER (ORDER BY A.VLUN_PLC_SN DESC) AS RNUM
+				,A.VLUN_PLC_SN
+				,A.VLUN_PLC_DV
+				,A.VLUN_PLC_FST
+				,A.VLUN_PLC_SCD
+				,A.VLUN_PLC_NM
+				,A.VLUN_PLC_ADDRESS
+                ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'ADDR',A.VLUN_PLC_ADDRESS) B_VLUN_PLC_ADDRESS
+				,CASE	WHEN A.USE_YN = 'Y' THEN '사용'
+						WHEN A.USE_YN = 'N' THEN '정지'
+						END	USE_YN
+				,A.VLUN_PLC_REPR
+				,A.VLUN_PLC_TEL_NO  VLUN_PLC_TEL_NO
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'HP',A.VLUN_PLC_TEL_NO) B_VLUN_PLC_TEL_NO
+				,A.PLC_MNGR_NM
+                ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',A.PLC_MNGR_NM) B_PLC_MNGR_NM
+				,A.PLC_MNGR_TEL_NO  PLC_MNGR_TEL_NO
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'HP',A.PLC_MNGR_TEL_NO) B_PLC_MNGR_TEL_NO
+                ,A.PLC_MNGR_EMAIL  PLC_MNGR_EMAIL
+				,A.PLC_MNGR_CP_NO  PLC_MNGR_CP_NO
+                ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'HP',A.PLC_MNGR_CP_NO) B_PLC_MNGR_CP_NO
+				,A.MAIN_ACT_AREA
+				,A.MAIN_TGT
+				, CASE 	WHEN A.UPDR_ID IS NOT NULL THEN (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.UPDR_ID ) 
+						ELSE (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.REGR_ID ) 
+						END UPDR_NM
+				, CASE 	WHEN A.UPDR_ID IS NOT NULL THEN (SELECT F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',B.MNGR_NM) FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.UPDR_ID ) 
+						ELSE (SELECT F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',B.MNGR_NM) FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.REGR_ID ) 
+						END B_UPDR_NM
+		        , CASE WHEN A.UPDT_DTM IS NOT NULL THEN TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') ELSE TO_CHAR(A.REG_DTM,'YYYY-MM-DD') END UPDT_DT
+		FROM	TRMV_VLUN_PLACE_I A
+		WHERE	1=1
+		<if test='USE_YN != null and USE_YN != ""'>
+			AND A.USE_YN = #{USE_YN}
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keykind == ""'>
+						AND	(A.VLUN_PLC_REPR LIKE '%' || #{keyword} || '%'
+						OR	A.VLUN_PLC_NM LIKE '%' || #{keyword} || '%')
+				</when>
+				<when test='keykind == "VLUN_PLC_REPR"'>
+					<if test='keyword != null and keyword != ""'>
+						AND		A.VLUN_PLC_REPR LIKE '%' || #{keyword} || '%'
+					</if>
+				</when>
+				<when test='keykind == "VLUN_PLC_NM"'>
+					<if test='keyword != null and keyword != ""'>
+						AND		A.VLUN_PLC_NM LIKE '%' || #{keyword} || '%'
+					</if>
+				</when>
+			</choose>
+		</if>
+	</select>
+
+	<!-- 공익복무처 상세 조회 -->
+	<select id="selectVlunPlaceDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.account.selectVlunPlaceDetail*/
+		SELECT	A.VLUN_PLC_SN
+				,A.VLUN_PLC_DV
+				,A.VLUN_PLC_FST
+				,A.VLUN_PLC_SCD
+				,A.VLUN_PLC_NM
+				,A.VLUN_PLC_ADDRESS
+				, CASE 	WHEN A.UPDR_ID IS NOT NULL THEN (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.UPDR_ID ) 
+						ELSE (SELECT B.MNGR_NM FROM TRMZ_MNGR_M B WHERE B.MNGR_ID = A.REGR_ID ) 
+						END UPDR_NM
+           		, CASE 	WHEN A.UPDT_DTM IS NOT NULL THEN TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') 
+           				ELSE TO_CHAR(A.REG_DTM,'YYYY-MM-DD') END UPDT_DT
+				,A.USE_YN
+				,A.VLUN_PLC_REPR
+				,VLUN_PLC_TEL_NO VLUN_PLC_TEL_NO
+				,A.PLC_MNGR_NM
+				,A.PLC_MNGR_TEL_NO PLC_MNGR_TEL_NO
+				,A.PLC_MNGR_EMAIL PLC_MNGR_EMAIL
+				,A.PLC_MNGR_CP_NO PLC_MNGR_CP_NO
+				,A.MAIN_ACT_AREA
+				,A.MAIN_TGT
+		FROM	TRMV_VLUN_PLACE_I A
+		WHERE	1=1
+		AND		A.VLUN_PLC_SN = #{VLUN_PLC_SN}
+	</select>
+	
+	<!-- 체육요원 복무현황 등록 -->
+	<insert id="insertVlunPlace" parameterType="KSPOMap">
+		/*org.kspo.web.account.insertVlunPlace*/
+		INSERT INTO TRMV_VLUN_PLACE_I(
+			VLUN_PLC_SN
+			,VLUN_PLC_DV
+			,VLUN_PLC_FST
+			,VLUN_PLC_SCD
+			,VLUN_PLC_NM
+			,VLUN_PLC_ADDRESS
+			,USE_YN
+			,VLUN_PLC_REPR
+			,VLUN_PLC_TEL_NO
+			,PLC_MNGR_NM
+			,PLC_MNGR_TEL_NO
+			,PLC_MNGR_EMAIL
+			,PLC_MNGR_CP_NO
+			,MAIN_ACT_AREA
+			,MAIN_TGT
+			,REG_DTM
+			,REGR_ID
+		) VALUES (
+			F_GET_SEQ('TRMV_VLUN_PLACE_I')
+			,#{VLUN_PLC_DV, jdbcType=VARCHAR}
+			,#{VLUN_PLC_FST, jdbcType=VARCHAR}
+			,#{VLUN_PLC_SCD, jdbcType=VARCHAR}
+			,#{VLUN_PLC_NM, jdbcType=VARCHAR}
+			,#{VLUN_PLC_ADDRESS, jdbcType=VARCHAR}
+			,#{USE_YN, jdbcType=VARCHAR}
+			,#{VLUN_PLC_REPR, jdbcType=VARCHAR}
+			,#{VLUN_PLC_TEL_NO, jdbcType=VARCHAR}
+			,#{PLC_MNGR_NM, jdbcType=VARCHAR}
+			,#{PLC_MNGR_TEL_NO, jdbcType=VARCHAR}
+			,#{PLC_MNGR_EMAIL, jdbcType=VARCHAR}
+			,#{PLC_MNGR_CP_NO, jdbcType=VARCHAR}
+			,#{MAIN_ACT_AREA, jdbcType=VARCHAR}
+			,#{MAIN_TGT, jdbcType=VARCHAR}
+			,SYSDATE
+			,#{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 체육요원 복무현황 수정 -->
+	<update id="updateVlunPlace" parameterType="KSPOMap">
+		/*org.kspo.web.account.updateVlunPlace*/
+		UPDATE	TRMV_VLUN_PLACE_I
+		SET		VLUN_PLC_DV = #{VLUN_PLC_DV, jdbcType=VARCHAR}
+				,VLUN_PLC_FST = #{VLUN_PLC_FST, jdbcType=VARCHAR}
+				,VLUN_PLC_SCD = #{VLUN_PLC_SCD, jdbcType=VARCHAR}
+				,VLUN_PLC_NM = #{VLUN_PLC_NM, jdbcType=VARCHAR}
+				,VLUN_PLC_ADDRESS = #{VLUN_PLC_ADDRESS, jdbcType=VARCHAR}
+				,USE_YN = #{USE_YN, jdbcType=VARCHAR}
+				,VLUN_PLC_REPR = #{VLUN_PLC_REPR, jdbcType=VARCHAR}
+				,VLUN_PLC_TEL_NO = #{VLUN_PLC_TEL_NO, jdbcType=VARCHAR}
+				,PLC_MNGR_NM = #{PLC_MNGR_NM, jdbcType=VARCHAR}
+				,PLC_MNGR_TEL_NO = #{PLC_MNGR_TEL_NO, jdbcType=VARCHAR}
+				,PLC_MNGR_EMAIL = #{PLC_MNGR_EMAIL, jdbcType=VARCHAR}
+				,PLC_MNGR_CP_NO = #{PLC_MNGR_CP_NO, jdbcType=VARCHAR}
+				,MAIN_ACT_AREA = #{MAIN_ACT_AREA, jdbcType=VARCHAR}
+				,MAIN_TGT = #{MAIN_TGT, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	VLUN_PLC_SN = #{VLUN_PLC_SN}
+	</update>
+	
+</mapper>

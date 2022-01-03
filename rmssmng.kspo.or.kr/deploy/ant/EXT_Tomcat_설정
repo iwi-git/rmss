@@ -1,0 +1,28 @@
+
+powered by yunkidon@kspo.or.kr
+
+ㅁ 외부 톰캣을 설정 방법
+1. $tomcat_home/conf/server.xml 수정
+ - vitual host 설정 : <Host name="rmssmng.kspo.or.kr"  appBase="webapps" unpackWARs="true" autoDeploy="true"/>
+ 
+2. 폴더생성 : $tomcat_home/conf/Catalina/rmssmng.kspo.or.kr/ROOT.xml
+
+3. 파일생성 : ROOT.xml
+ - <Context path="/" docBase="D:/JAVA_PROJECT/04. waspage/lstmng.kspo.or.kr" reloadable="true" />
+ 
+4. hosts 파일 수정
+ - 127.0.0.1 rmssmng.kspo.or.kr
+ 
+ 
+ㅁ eclipse 빌드 방법
+1. ant view 생성
+
+2. add buildfiles ---> import : deploy/ant/build.xml
+
+3. build.properties 수정
+
+4. clean or rmssmng 더블클릭
+
+※ 다른 파일내 쿼리아이디 및 unique한 항목 등 수정 시 tomcat 중지 ===> clean ===> rmssmng 수행
+
+* tomcat, eclipse, log 별도 관리하고자 합니다.

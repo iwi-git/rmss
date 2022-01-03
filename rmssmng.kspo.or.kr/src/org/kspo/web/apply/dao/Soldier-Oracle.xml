@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.apply.dao.SoldierDAO">
+
+	<!-- 체육요원 편입신청 목록 조회 -->
+	<select id="selectSoldierSelectList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierSelectList*/
+		SELECT	A.*
+				,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				,NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM	(
+				SELECT	A10.RNUM
+						,CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,A10.TOTAL_RECORD_COUNT
+						,A10.APPL_SN
+						,TO_CHAR(A10.APPL_UPD_DTM,'YYYYMMDD') AS APPL_UPD_DTM
+						,A10.APPL_NM
+						,TO_CHAR(TO_DATE(A10.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+						,A10.ADDR
+						,A10.GAME_CD
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+						,A10.APPL_STS
+						,A10.MEMORG_SN
+						,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = A10.MEMORG_SN) MEMORG_NM
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+						,A10.PROC_STS
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+						,A10.MLTR_ID
+				FROM	(
+						SELECT	ROW_NUMBER () OVER (ORDER BY TAI.APPL_SN DESC) AS RNUM
+								,COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+								,TAI.APPL_SN
+								,TAI.APPL_UPD_DTM
+								,TAI.APPL_NM
+								,TAI.BRTH_DT
+								,TAI.ADDR
+								,TAI.GAME_CD
+								,TAI.APPL_STS
+								,TAI.MEMORG_SN
+								,TAI.PROC_STS
+								,TAA.MLTR_ID
+						FROM	TRMM_APPL_I TAI LEFT OUTER JOIN TRMM_APPL_ACPT_I TAA
+						  ON    TAI.APPL_SN = TAA.APPL_SN
+						WHERE	1=1
+						<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+							AND TAI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+						</if>
+						<if test='GRP_SN != null and GRP_SN != ""'>
+							<choose>
+								<when test='GRP_SN == "2"'>
+									AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}					
+								</when>
+								<otherwise>
+									<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+										AND TAI.MEMORG_SN = #{srchMemOrgSn}
+									</if>
+									AND TAI.APPL_STS != 'TP'	
+								</otherwise>
+							</choose>
+						</if>
+						<if test='srchGameCd != null and srchGameCd != ""'>
+						AND		TAI.GAME_CD = #{srchGameCd}
+						</if>
+						<if test='srchApplSts != null and srchApplSts != ""'>
+						AND		TAI.APPL_STS = #{srchApplSts}
+						</if>
+						<if test='keyword != null and keyword != ""'>
+							<choose>
+								<when test='keykind == ""'>
+										AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+										OR	TAI.ADDR LIKE '%' || #{keyword} || '%')
+								</when>
+								<when test='keykind == "NAME"'>
+									<if test='keyword != null and keyword != ""'>
+										AND		TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+									</if>
+								</when>
+								<when test='keykind == "ADDR"'>
+									<if test='keyword != null and keyword != ""'>
+										AND		TAI.ADDR LIKE '%' || #{keyword} || '%'
+									</if>
+								</when>
+							</choose>
+						</if>
+						) A10
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+
+	<!-- 체육요원 편입신청 엑셀다운로드 조회 -->
+	<select id="selectSoldierSelectExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierSelectExcelList*/
+		SELECT	ROW_NUMBER () OVER (ORDER BY TAI.APPL_SN DESC) AS RNUM
+				,TAI.APPL_SN
+				,TO_CHAR(TAI.APPL_UPD_DTM,'YYYYMMDD') AS APPL_UPD_DTM
+				,TAI.APPL_NM
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+				,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+				,TAI.ADDR
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'ADDR',TAI.ADDR) B_ADDR
+				,TAI.GAME_CD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TAI.APPL_STS
+				,TAI.MEMORG_SN
+				,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+				,TAI.PROC_STS
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+				,TAA.MLTR_ID
+		FROM	TRMM_APPL_I TAI LEFT OUTER JOIN TRMM_APPL_ACPT_I TAA
+		  ON    TAA.APPL_SN = TAI.APPL_SN
+		WHERE	1=1
+		<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+				AND TAI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+		</if>
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+				</when>
+				<otherwise>
+					<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+						AND TAI.MEMORG_SN = #{srchMemOrgSn}
+					</if>
+					AND TAI.APPL_STS != 'TP'	
+				</otherwise>
+			</choose>
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+		AND		TAI.GAME_CD = #{srchGameCd}
+		</if>
+		<if test='srchApplSts != null and srchApplSts != ""'>
+		AND		TAI.APPL_STS = #{srchApplSts}
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keykind == ""'>
+						AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+						OR	TAI.ADDR LIKE '%' || #{keyword} || '%')
+				</when>
+				<when test='keykind == "NAME"'>
+					<if test='keyword != null and keyword != ""'>
+						AND		TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+					</if>
+				</when>
+				<when test='keykind == "ADDR"'>
+					<if test='keyword != null and keyword != ""'>
+						AND		TAI.ADDR LIKE '%' || #{keyword} || '%'
+					</if>
+				</when>
+			</choose>
+		</if>
+	</select>
+
+	<!-- 체육요원 복무현황 상세 조회 -->
+	<select id="selectSoldierSelectDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierSelectDetail*/
+		SELECT	TAI.APPL_SN
+				,TAI.APPL_NM
+				,TAI.BRTH_DT
+				,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') S_BRTH_DT
+				,TAI.ZIP
+				,TAI.ADDR
+				,TAI.CP_NO CP_NO
+				,TAI.CP_NO S_CP_NO
+				,TAI.EMAIL EMAIL
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TAI.CONT_NM
+				,TAI.GAME_CD
+				,TAI.RANK
+                ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.RANK AND A.CMMN_SN = '202111050000340') RANK_NM
+                ,TAI.AWRD_DT
+                ,TO_CHAR(TO_DATE(TAI.AWRD_DT),'YYYY-MM-DD') S_AWRD_DT
+				,TAI.FIELD
+                ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.FIELD AND A.CMMN_SN = '202111050000339') FIELD_NM
+				,TAI.TEAM_NM
+				,TAI.TM_NTN
+				,TAI.INSPT_YR
+				,TAI.INSPT_MLTR_ADMN
+                ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.INSPT_MLTR_ADMN AND A.CMMN_SN = '202111050000337') INSPT_MLTR_ADMN_NM
+				,TAI.RSVT_DT
+				,TAI.APPL_DT
+				,TAI.CPLT_YN
+				,TAI.MEMORG_SN
+				,TMM.MEMORG_NM
+				,TMM.MEMORG_TEL_NO MEMORG_TEL_NO
+				,TMM.ORG_MNGR_EMAIL ORG_MNGR_EMAIL 
+				,TAI.APPL_UPD_DTM
+				,TAI.APPL_STS
+				,TAI.MLTR_DV
+				,TAI.STAR_ID
+				,TAI.REG_DTM
+				,TAI.REGR_ID
+				,TAI.PROC_STS
+				,TAI.GAME_DTL
+				,(SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAI.REGR_ID ) REGR_NM
+				, CASE 	WHEN TAI.UPDR_ID IS NOT NULL THEN (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAI.UPDR_ID ) 
+						ELSE (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAI.REGR_ID ) 
+						END UPDR_NM
+                , CASE 	WHEN TAI.UPDT_DTM IS NOT NULL THEN TO_CHAR(TAI.UPDT_DTM,'YYYY-MM-DD') 
+                		ELSE TO_CHAR(TAI.REG_DTM,'YYYY-MM-DD') 
+                		END UPDT_DT
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+				,(SELECT MLTR_ID FROM TRMM_APPL_ACPT_I WHERE APPL_SN = TAI.APPL_SN) MLTR_ID
+				, TAI.ATCH_FILE_ID1 
+		FROM	TRMM_APPL_I TAI, TRMZ_MEMORG_MNG_I TMM
+		WHERE	TAI.APPL_SN = #{APPL_SN}
+		  AND   TMM.MEMORG_SN  = TAI.MEMORG_SN 
+	</select>
+	
+	<!-- 체육요원 편입신청 문체부승인내역 상세 조회 -->
+	<select id="selectSoldierSelectAcptDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierSelectAcptDetail*/
+		SELECT	TAAI.MLTR_ID
+				,TAAI.APPL_SN
+				,TAAI.ADDM_DT
+				,TAAI.SRV_INSTT_CODE
+				,TAAI.SRV_FIELD
+				,TAAI.CTRL_MMA_CD
+				,TAAI.DSPTH_REASON
+				,DBMS_LOB.SUBSTR(TAAI.APPL_REASON) APPL_REASON
+				,TO_CHAR(TAAI.ACPT_UPD_DTM,'YYYY-MM-DD') ACPT_UPD_DTM
+				,TAAI.ACPT_CMPL_DTM
+				,(SELECT A.FILE_SN FROM TRMZ_FILE_F A WHERE A.REFR_KEY = TAAI.ATCH_FILE_ID) ATCH_FILE_ID
+				,(SELECT A.FILE_ORGIN_NM FROM TRMZ_FILE_F A WHERE A.REFR_KEY = TAAI.ATCH_FILE_ID) ATCH_FILE_NM
+				,(SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAAI.REGR_ID ) REGR_NM
+				,(SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAAI.UPDR_ID ) UPDR_NM
+				,DBMS_LOB.SUBSTR(TAAI.CMPL_REASON) CMPL_REASON
+				,TAAI.MLTR_DV
+				,TAAI.STAR_ID
+		FROM	TRMM_APPL_ACPT_I TAAI
+		WHERE	TAAI.APPL_SN = #{APPL_SN}
+	</select>
+	
+	<!-- 체육요원 복무현황 등록 -->
+	<insert id="insertSoldierSelect" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="APPL_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMM_APPL_I') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.soldier.inserSoldierSelect*/
+		INSERT INTO TRMM_APPL_I(
+			APPL_SN
+			,APPL_NM
+			,BRTH_DT
+			,ZIP
+			,ADDR
+			,CP_NO
+			,EMAIL
+			,CONT_NM
+			,GAME_CD
+			,RANK
+			,AWRD_DT
+			,FIELD
+			,TEAM_NM
+			,TM_NTN
+			,INSPT_YR
+			,INSPT_MLTR_ADMN
+			,ATCH_FILE_ID1
+			,MEMORG_SN
+			,APPL_STS
+			,MLTR_DV
+			,REG_DTM
+			,REGR_ID
+			,PROC_STS
+			,GAME_DTL
+			<if test='APPL_STS == "AP"'>
+				,APPL_UPD_DTM
+			</if>
+			,VLUN_DUTY_HR
+		) VALUES (
+			#{APPL_SN}
+			,#{APPL_NM}
+			,#{BRTH_DT}
+			,#{ZIP, jdbcType=VARCHAR}
+			,#{ADDR, jdbcType=VARCHAR}
+			,F#{CP_NO}
+			,#{EMAIL}
+			,#{CONT_NM, jdbcType=VARCHAR}
+			,#{GAME_CD, jdbcType=VARCHAR}
+			,#{RANK, jdbcType=VARCHAR}
+			,#{AWRD_DT, jdbcType=VARCHAR}
+			,#{FIELD, jdbcType=VARCHAR}
+			,#{TEAM_NM, jdbcType=VARCHAR}
+			,#{TM_NTN, jdbcType=VARCHAR}
+			,#{INSPT_YR, jdbcType=VARCHAR}
+			,#{INSPT_MLTR_ADMN, jdbcType=VARCHAR}
+			,#{ATCH_FILE_ID1, jdbcType=VARCHAR}
+			,#{MEMORG_SN, jdbcType=VARCHAR}
+			,#{APPL_STS, jdbcType=VARCHAR}
+			,#{MLTR_DV, jdbcType=VARCHAR}
+			,SYSDATE
+			,#{EMP_NO}
+			,#{PROC_STS, jdbcType=VARCHAR}
+			,#{GAME_DTL, jdbcType=VARCHAR}
+			<if test='APPL_STS == "AP"'>
+				,SYSDATE
+			</if>
+			,'544'
+		)
+	</insert>
+	
+	<!-- 체육요원 복무현황 수정 -->
+	<update id="updateSoldierSelect" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSoldierSelect*/
+		UPDATE	TRMM_APPL_I
+		SET		APPL_NM = #{APPL_NM}
+				,BRTH_DT = #{BRTH_DT}
+				,ZIP = #{ZIP, jdbcType=VARCHAR}
+				,ADDR = #{ADDR, jdbcType=VARCHAR}
+				,CP_NO =  #{CP_NO}
+				,EMAIL = #{EMAIL}
+				,CONT_NM = #{CONT_NM, jdbcType=VARCHAR}
+				,GAME_CD = #{GAME_CD, jdbcType=VARCHAR}
+				,RANK = #{RANK, jdbcType=VARCHAR}
+				,AWRD_DT = #{AWRD_DT, jdbcType=VARCHAR}
+				,FIELD = #{FIELD, jdbcType=VARCHAR}
+				,TEAM_NM = #{TEAM_NM, jdbcType=VARCHAR}
+				,TM_NTN	= #{TM_NTN, jdbcType=VARCHAR}
+				,INSPT_YR = #{INSPT_YR, jdbcType=VARCHAR}
+				,INSPT_MLTR_ADMN = #{INSPT_MLTR_ADMN, jdbcType=VARCHAR}
+				,ATCH_FILE_ID1 = #{ATCH_FILE_ID1, jdbcType=VARCHAR}
+				,MEMORG_SN	= #{MEMORG_SN, jdbcType=VARCHAR}
+				,APPL_STS = #{APPL_STS, jdbcType=VARCHAR}
+				,MLTR_DV = #{MLTR_DV, jdbcType=VARCHAR}
+				,PROC_STS = #{PROC_STS, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+				,GAME_DTL = #{GAME_DTL, jdbcType=VARCHAR}
+				<if test='APPL_STS == "AP"'>
+					,APPL_UPD_DTM = SYSDATE
+				</if>
+		WHERE	APPL_SN = #{APPL_SN}
+	</update>
+
+	<!-- 체육요원 복무현황 삭제 -->
+	<delete id="deleteSoldierSelect" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSoldierSelect*/
+		DELETE 
+		FROM	TRMM_APPL_I
+		WHERE	APPL_SN = #{APPL_SN}
+	</delete>
+	
+	<!-- 체육요원 편입신청 수정 -->
+	<update id="updateSoldierSelectReceipt" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSoldierSelectReceipt*/
+		UPDATE	TRMM_APPL_I
+		SET		APPL_STS = #{APPL_STS}
+				,PROC_STS = #{PROC_STS}
+				<if test='APPL_STS == "KY"'>
+				,APPL_DT = TO_CHAR(SYSDATE,'YYYYMMDD')
+				</if>
+				<if test='APPL_STS == "KN" or APPL_STS == "KC"'>
+				,ACPT_REASON = #{ACPT_REASON}
+				</if>
+		WHERE	APPL_SN = #{APPL_SN}
+	</update>
+
+	<!-- 체육요원 편입신청 문체부승인시 편입신청 테이블 수정 -->
+	<update id="updateApprovalReceipt" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateApprovalReceipt*/
+		UPDATE	TRMM_APPL_I
+		SET		APPL_STS = #{APPL_STS}
+				,PROC_STS = #{PROC_STS}
+				,RSVT_DT = #{RSVT_DT}
+				,EXPR_DT = #{RSVT_DT}
+		WHERE	APPL_SN = #{APPL_SN}
+	</update>
+	
+	<!-- 체육요원 편입관리 접수처리 등록 -->
+	<insert id="insertSoldierSelectApplAcpt" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.insertSoldierSelectApplAcpt*/
+		INSERT INTO TRMM_APPL_ACPT_I(
+			MLTR_ID
+			,APPL_SN
+			,ACPT_UPD_DTM
+			,APPL_REASON
+			,REG_DTM
+			,REGR_ID
+		) VALUES (
+			(SELECT F_GET_MLTR_SEQ(#{MEMORG_SN}) FROM DUAL)
+			,#{APPL_SN}
+			,SYSDATE
+			,#{ACPT_REASON, jdbcType=VARCHAR}
+			,SYSDATE
+			,#{EMP_NO}
+		)
+	</insert>
+
+	<!-- 체육요원 공단 편입관리 접수반려 및 취소 update -->
+	<update id="updateSoldierSelectApplAcpt" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSoldierSelectApplAcpt*/
+		UPDATE	TRMM_APPL_ACPT_I
+		SET		UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+				,APPL_REASON = #{ACPT_REASON}
+		WHERE	MLTR_ID = #{MLTR_ID}
+	</update>
+
+	<!-- 체육요원 공단 편입관리 문체부승인 update -->
+	<update id="updateSoldierSelectApproval" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSoldierSelectApproval*/
+		UPDATE	TRMM_APPL_ACPT_I
+		SET		ADDM_DT = #{ADDM_DT}
+				,SRV_INSTT_CODE = #{SRV_INSTT_CODE}
+				,SRV_FIELD = #{SRV_FIELD}
+				,CTRL_MMA_CD = #{CTRL_MMA_CD}
+				,DSPTH_REASON = #{DSPTH_REASON, jdbcType=VARCHAR}
+				,ACPT_CMPL_DTM = SYSDATE
+				,CMPL_REASON = #{CMPL_REASON, jdbcType=VARCHAR}
+				,ATCH_FILE_ID = #{ATCH_FILE_ID, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	MLTR_ID = #{MLTR_ID}
+	</update>
+	
+	<!-- 체육요원 복무현황 목록 조회 -->
+	<select id="selectSoldierMngList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierMngList*/
+		SELECT	A.*
+				, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM
+				(
+				SELECT	A10.RNUM
+						,A10.TOTAL_RECORD_COUNT
+						,CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,A10.MLTR_ID
+						,A10.APPL_SN
+						,A10.ADDM_DT
+						,A10.APPL_NM
+						,TO_CHAR(TO_DATE(A10.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+						,A10.ADDR
+						,A10.GAME_CD
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+						,A10.APPL_STS
+						,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+						,A10.PROC_STS
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+						,A10.RSVT_DT
+						,A10.EXPR_DT
+						,A10.CTRL_MMA_CD
+						,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A10.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+						,A10.MEMORG_SN
+						,A10.MEMORG_NM
+				FROM	(
+						SELECT	ROW_NUMBER () OVER (ORDER BY TAA.MLTR_ID DESC) AS RNUM
+								,COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+								,TAA.MLTR_ID
+								,TAA.APPL_SN
+								,TAA.ADDM_DT
+								,TAI.APPL_NM
+								,TAI.BRTH_DT
+								,TAI.ADDR
+								,TAI.GAME_CD
+								,TAI.APPL_STS
+								,TAI.PROC_STS
+								,TAI.RSVT_DT
+								,TAI.EXPR_DT
+								,TAA.CTRL_MMA_CD
+								,TAI.MEMORG_SN
+								,TMM.MEMORG_NM
+						FROM	TRMM_APPL_ACPT_I TAA,
+								TRMM_APPL_I TAI,
+								TRMZ_MEMORG_MNG_I TMM
+						WHERE	TAI.APPL_SN = TAA.APPL_SN
+						AND   	TMM.MEMORG_SN = TAI.MEMORG_SN
+						AND   	TAI.PROC_STS != 'AW'
+						<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+						AND TAA.ADDM_DT <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+						</if>
+						<if test='GRP_SN != null and GRP_SN != ""'>
+							<choose>
+								<when test='GRP_SN == "2"'>
+									AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}					
+								</when>
+								<otherwise>
+									<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+										AND TAI.MEMORG_SN = #{srchMemOrgSn}
+									</if>	
+								</otherwise>
+							</choose>
+						</if>
+						<if test='srchGameCd != null and srchGameCd != ""'>
+						AND		TAI.GAME_CD = #{srchGameCd}
+						</if>
+						<if test='srchMltrAdmn != null and srchMltrAdmn != ""'>
+						AND		TAA.CTRL_MMA_CD = #{srchMltrAdmn}
+						</if>
+						<if test='srchApplSts != null and srchApplSts != ""'>
+						AND		TAI.PROC_STS = #{srchApplSts}
+						</if>
+						<if test='keyword != null and keyword != ""'>
+							<choose>
+								<when test='keykind == ""'>
+										AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+										OR	TAI.ADDR LIKE '%' || #{keyword} || '%')
+								</when>
+								<when test='keykind == "NAME"'>
+									<if test='keyword != null and keyword != ""'>
+										AND		TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+									</if>
+								</when>
+								<when test='keykind == "ADDR"'>
+									<if test='keyword != null and keyword != ""'>
+										AND		TAI.ADDR LIKE '%' || #{keyword} || '%'
+									</if>
+								</when>
+							</choose>
+						</if>
+						) A10
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+
+	<!-- 체육요원 복무현황 엑셀다운로드 조회 -->
+	<select id="selectSoldierMngExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierMngExcelList*/
+			SELECT	ROW_NUMBER () OVER (ORDER BY TAA.MLTR_ID DESC) AS RNUM
+					,TAA.MLTR_ID
+					,TAA.APPL_SN
+					,TO_CHAR(TO_DATE(TAA.ADDM_DT),'YYYY-MM-DD') ADDM_DT
+					,TAI.APPL_NM
+					,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+					,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+					,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+					,TAI.ADDR
+					,F_GET_MASK(#{USER_DV}, #{gMenuSn},'ADDR',TAI.ADDR) B_ADDR
+					,TAI.GAME_CD
+					,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+					,TAI.APPL_STS
+				    ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+				    ,TAI.PROC_STS
+					,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+				    ,TO_CHAR(TO_DATE(TAI.RSVT_DT),'YYYY-MM-DD') RSVT_DT
+                    ,TO_CHAR(TO_DATE(TAI.EXPR_DT),'YYYY-MM-DD') EXPR_DT
+				    ,TAA.CTRL_MMA_CD
+				    ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAA.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+				    ,TAI.MEMORG_SN
+					,TMM.MEMORG_NM
+			FROM	TRMM_APPL_ACPT_I TAA,
+					TRMM_APPL_I TAI,
+					TRMZ_MEMORG_MNG_I TMM
+			WHERE	TAA.APPL_SN = TAI.APPL_SN
+			  AND   TAI.MEMORG_SN  = TMM.MEMORG_SN
+			  AND   TAI.PROC_STS  != 'AW'
+			<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+					AND TAA.ADDM_DT <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+			</if>
+			<if test='GRP_SN != null and GRP_SN != ""'>
+				<choose>
+					<when test='GRP_SN == "2"'>
+						AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}					
+					</when>
+					<otherwise>
+						<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+							AND TAI.MEMORG_SN = #{srchMemOrgSn}
+						</if>	
+					</otherwise>
+				</choose>
+			</if>
+			<if test='srchGameCd != null and srchGameCd != ""'>
+			AND		TAI.GAME_CD = #{srchGameCd}
+			</if>
+			<if test='srchMltrAdmn != null and srchMltrAdmn != ""'>
+			AND		TAA.CTRL_MMA_CD = #{srchMltrAdmn}
+			</if>
+			<if test='srchApplSts != null and srchApplSts != ""'>
+			AND		TAI.PROC_STS = #{srchApplSts}
+			</if>
+			<if test='keyword != null and keyword != ""'>
+				<choose>
+					<when test='keykind == ""'>
+							AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+							OR	TAI.ADDR LIKE '%' || #{keyword} || '%')
+					</when>
+					<when test='keykind == "NAME"'>
+						<if test='keyword != null and keyword != ""'>
+							AND		TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+						</if>
+					</when>
+					<when test='keykind == "ADDR"'>
+						<if test='keyword != null and keyword != ""'>
+							AND		TAI.ADDR LIKE '%' || #{keyword} || '%'
+						</if>
+					</when>
+				</choose>
+			</if>
+	</select>
+	
+	<!-- 체육요원 복무현황 상세 조회 -->
+	<select id="selectSoldierMngDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.selectSoldierMngDetail*/
+		SELECT	TAA.MLTR_ID
+				,TAA.APPL_SN
+				,TO_CHAR(TO_DATE(TAA.ADDM_DT),'YYYY-MM-DD') ADDM_DT
+				,TAI.APPL_NM
+				,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+				,TAI.ADDR
+				,TAI.GAME_CD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TAI.CP_NO CP_NO
+				,FTAI.EMAIL EMAIL
+				,TAI.CONT_NM
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.RANK AND A.CMMN_SN = '202111050000340') RANK
+				,TO_CHAR(TO_DATE(TAI.AWRD_DT),'YYYY-MM-DD') AWRD_DT
+				,TAI.FIELD
+				,TAI.TEAM_NM
+				,TAI.TM_NTN
+				,TAI.INSPT_YR
+				,TAI.INSPT_MLTR_ADMN
+				,TAI.EXPR_DT
+				,TO_CHAR(TO_DATE(TAI.EXPR_DT),'YYYY-MM-DD') S_EXPR_DT
+				,DBMS_LOB.SUBSTR(TAI.EXPR_REASON) EXPR_REASON
+				,DBMS_LOB.SUBSTR(TAI.APPL_CNCL_REASON) APPL_CNCL_REASON
+				,TAI.APPL_CNCL_DT
+				,TAI.ATCH_FILE_ID1
+				,TAI.MLTR_DV
+				,TAI.PROC_STS
+				,TAI.GAME_DTL
+				,TAI.APPL_STS
+			    ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.APPL_STS AND A.CMMN_SN = '30') APPL_STS_NM
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+			    ,TAI.RSVT_DT
+			    ,TO_CHAR(TO_DATE(TAI.RSVT_DT),'YYYY-MM-DD') S_RSVT_DT
+			    ,TAA.CTRL_MMA_CD
+			    ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAA.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+			    ,TAI.MEMORG_SN
+				,TMM.MEMORG_NM
+				,TMM.MEMORG_TEL_NO
+				,TMM.ORG_MNGR_EMAIL ORG_MNGR_EMAIL
+				,TAA.SRV_INSTT_CODE
+                ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAA.SRV_INSTT_CODE AND A.CMMN_SN = '202111050000338') SRV_INSTT_CODE_NM
+				,TAA.SRV_FIELD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAA.SRV_FIELD AND A.CMMN_SN = '202111050000339') SRV_FIELD_NM
+                ,DBMS_LOB.SUBSTR(TAA.CMPL_REASON) CMPL_REASON
+				,TAA.DSPTH_REASON
+				,TO_CHAR(TO_DATE(TAA.ACPT_CMPL_DTM),'YYYY-MM-DD') ACPT_CMPL_DTM
+				,CASE WHEN TAI.UPDR_ID IS NOT NULL THEN (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAI.UPDR_ID ) ELSE (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TAI.REGR_ID ) END UPDR_NM
+                ,CASE WHEN TAI.UPDT_DTM IS NOT NULL THEN TO_CHAR(TAI.UPDT_DTM,'YYYY-MM-DD') ELSE TO_CHAR(TAI.REG_DTM,'YYYY-MM-DD') END UPDT_DT
+                ,(SELECT A.FILE_SN FROM TRMZ_FILE_F A WHERE A.REFR_KEY = TAA.ATCH_FILE_ID) ATCH_FILE_ID
+                ,(SELECT A.FILE_ORGIN_NM FROM TRMZ_FILE_F A WHERE A.REFR_KEY = TAA.ATCH_FILE_ID) ATCH_FILE_NM
+		FROM	TRMM_APPL_ACPT_I TAA,
+				TRMM_APPL_I TAI,
+				TRMZ_MEMORG_MNG_I TMM
+		WHERE	TAA.APPL_SN = TAI.APPL_SN
+		  AND   TAI.MEMORG_SN  = TMM.MEMORG_SN  
+		  AND   TAA.MLTR_ID = #{MLTR_ID} 
+	</select>
+	
+	<!-- 체육요원 복무현황 복무만료 혹은 취소 update -->
+	<update id="updateSolidMngExprApplCnclProc" parameterType="KSPOMap">
+		/*org.kspo.web.soldier.updateSolidMngExprApplCnclProc*/
+		UPDATE	TRMM_APPL_I
+		SET		PROC_STS = #{PROC_STS}
+				<if test='PROC_STS == "MM"'>
+				,EXPR_DT = #{EXPR_DT}
+				,EXPR_REASON = #{EXPR_REASON, jdbcType=VARCHAR}
+				</if>
+				<if test='PROC_STS == "AC"'>
+				,APPL_CNCL_DT = #{APPL_CNCL_DT}
+				,APPL_CNCL_REASON = #{APPL_CNCL_REASON}
+				</if>
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	APPL_SN = #{APPL_SN}
+	</update>
+	
+	<!-- 봉사활동 실적현황 조회 -->
+	<select id="recordDtl" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.soldier.recordDtl*/
+		SELECT 
+			TAAI.MLTR_ID
+			, TO_CHAR(TO_DATE(TAAI.ADDM_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS ADDM_DT
+			, TAI.APPL_NM
+			, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS BRTH_DT
+			, TO_CHAR(TO_DATE(TAI.EXPR_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS EXPR_DT
+			, NVL(RECD_CNT.RECD_CNT, 0) AS RECD_CNT
+			, NVL(RECD_M_CNT.RECD_M_CNT, 0) AS RECD_M_CNT
+			, NVL(RECD_D_CNT.RECD_D_CNT, 0) AS RECD_D_CNT
+			, NVL(RECD_INFO.TOT_FINAL_ACT_TIME_HR, 0) AS TOT_FINAL_ACT_TIME_HR
+			, NVL(RECD_INFO.TOT_FINAL_ACT_TIME_MN, 0) AS TOT_FINAL_ACT_TIME_MN
+			, NVL(RECD_INFO.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_WP_MV_TIME
+			, NVL(RECD_INFO.FINAL_REMAIN_ACT_TIME_HR, 0) AS FINAL_REMAIN_ACT_TIME_HR
+			, NVL(RECD_INFO.FINAL_REMAIN_ACT_TIME_MN, 0) AS FINAL_REMAIN_ACT_TIME_MN
+			, NVL(RECD_INFO.TOT_FINAL_ACT_TIME_HR + RECD_INFO.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR
+			, NVL(RECD_INFO.TOT_FINAL_ACT_TIME_MN, 0) AS TOT_FINAL_TIME_MN
+		FROM
+			TRMM_APPL_ACPT_I TAAI
+		INNER JOIN TRMM_APPL_I TAI 
+			ON TAI.APPL_SN = TAAI.APPL_SN
+			AND NVL(TAI.APPL_STS, '') = 'MY'
+		LEFT OUTER JOIN (
+			SELECT
+				COUNT(TVPI.MLTR_ID) AS RECD_M_CNT, TVPI.MLTR_ID
+			FROM
+				TRMV_VLUN_RECD_M TVRM 
+			INNER JOIN TRMV_VLUN_PLAN_I TVPI
+				ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+			WHERE 1=1
+				AND NVL(TVRM.RECD_STS, '') = 'MY'
+				AND NVL(TVPI.PLAN_STS, '') = 'KY'
+			GROUP BY TVPI.MLTR_ID
+		) RECD_M_CNT
+			ON RECD_M_CNT.MLTR_ID = TAAI.MLTR_ID
+		LEFT OUTER JOIN (
+			SELECT
+				COUNT(TVPI.MLTR_ID) AS RECD_CNT, TVPI.MLTR_ID
+			FROM
+				TRMV_VLUN_PLAN_I TVPI
+			WHERE 1=1
+				AND NVL(TVPI.PLAN_STS, '') = 'KY'
+			GROUP BY TVPI.MLTR_ID
+		) RECD_CNT
+        ON RECD_CNT.MLTR_ID = TAAI.MLTR_ID
+		LEFT OUTER JOIN (
+			SELECT 
+				COUNT(TVRD.VLUN_RECD_D_SN) AS RECD_D_CNT
+				, TVPI.MLTR_ID	
+			FROM TRMV_VLUN_RECD_D TVRD 
+			INNER JOIN TRMV_VLUN_RECD_M TVRM 
+				ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN
+			INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+				ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+			WHERE 1=1
+				AND NVL(TVRM.RECD_STS, '') = 'MY'
+				AND NVL(TVPI.PLAN_STS, '') = 'KY'
+			GROUP BY TVPI.MLTR_ID
+		) RECD_D_CNT
+			ON RECD_D_CNT.MLTR_ID = TAAI.MLTR_ID
+		LEFT OUTER JOIN (
+			SELECT
+				TRUNC(RECD_TIME.FINAL_ACT_TIME_FORMAT_MN / 60) AS TOT_FINAL_ACT_TIME_HR 
+				, MOD(RECD_TIME.FINAL_ACT_TIME_FORMAT_MN, 60) AS TOT_FINAL_ACT_TIME_MN
+				, RECD_TIME.TOT_FINAL_WP_MV_TIME
+				, RECD_TIME.MLTR_ID
+				, TRUNC( ((RECD_TIME.VLUN_DUTY_HR * 60) - (RECD_TIME.FINAL_ACT_TIME_FORMAT_MN)) / 60) - RECD_TIME.TOT_FINAL_WP_MV_TIME AS FINAL_REMAIN_ACT_TIME_HR
+				, MOD ( (RECD_TIME.VLUN_DUTY_HR * 60) - (RECD_TIME.FINAL_ACT_TIME_FORMAT_MN), 60) AS FINAL_REMAIN_ACT_TIME_MN
+			FROM (
+					SELECT SUM(TVRD.ADMS_REDY_TIME) AS TOT_ADMS_REDY_TIME
+						   ,(
+						   		(SUM(NVL(TVRD.AFT_ACT_TIME_HR , TVRD.PC_ACT_TIME_HR) * 60)
+						    	+ SUM(NVL(TVRD.AFT_ACT_TIME_MN, TVRD.PC_ACT_TIME_MN)))
+						    ) AS FINAL_ACT_TIME_FORMAT_MN
+						   , SUM(NVL(TVRD.AFT_WP_MV_TIME, TVRD.PC_REC_WP_MV_TIME)) AS TOT_FINAL_WP_MV_TIME
+						   , TVPI.MLTR_ID
+						   , TAI.VLUN_DUTY_HR
+					FROM TRMV_VLUN_RECD_D TVRD 
+					INNER JOIN TRMV_VLUN_RECD_M TVRM 
+						ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN
+					INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+						ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+					INNER JOIN TRMM_APPL_ACPT_I TAAI 
+						ON TAAI.MLTR_ID  = TVPI.MLTR_ID
+					INNER JOIN TRMM_APPL_I TAI 
+						ON TAI.APPL_SN = TAAI.APPL_SN
+					WHERE 1=1
+						AND NVL(TVRM.RECD_STS, '') = 'MY'
+						AND NVL(TVPI.PLAN_STS, '') = 'KY'
+					GROUP BY TVPI.MLTR_ID, TAI.VLUN_DUTY_HR
+			) RECD_TIME
+		) RECD_INFO
+			ON RECD_INFO.MLTR_ID = TAAI.MLTR_ID
+	WHERE 1=1
+		AND TAAI.MLTR_ID = #{MLTR_ID}
+						
+	</select>
+
+</mapper>

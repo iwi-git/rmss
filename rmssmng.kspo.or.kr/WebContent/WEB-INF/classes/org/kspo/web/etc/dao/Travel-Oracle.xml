@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.etc.dao.TravelDAO">
+
+	<!-- 체육요원 국외여행 목록 조회 -->
+	<select id="selectTravelSelectList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	A.*
+		FROM
+				(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+						,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+						,NVL(#{pageSize},10) AS PAGE_SIZE
+				FROM
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY TTI.TRVL_SN DESC) AS RNUM
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						,TTI.TRVL_SN
+						,TTI.MLTR_ID
+						,TTI.FRGN_ADDR
+						,TTI.TRVL_STS
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TTI.TRVL_STS AND A.CMMN_SN = '202111150000352') TRVL_STS_NM
+                        ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                        ,TAI.PROC_STS 
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+                        ,TAI.APPL_NM
+                        ,TAI.BRTH_DT
+                        ,TAI.GAME_CD
+                        ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+						,TO_CHAR(TTI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+						,TTI.REGR_ID
+						,(SELECT MAX((SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.TRVL_APPL_DV AND B.CMMN_SN = '202111150000353')) FROM TRMA_TRVL_RECD_I A WHERE A.TRVL_SN = TTI.TRVL_SN) TRVL_APPL_DV
+				FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMA_TRVL_I TTI
+				WHERE	1=1
+                AND TAI.APPL_SN = TAAI.APPL_SN
+                AND TAAI.MLTR_ID = TTI.MLTR_ID
+                <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+					AND TTI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TTI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='srchGameCd != null and srchGameCd != ""'>
+					AND TAI.GAME_CD = #{srchGameCd}
+				</if>
+				<choose>
+					<when test='srchProcSts != null and srchProcSts != ""'>
+						AND TAI.PROC_STS = #{srchProcSts}					
+					</when>
+					<otherwise>
+						AND TAI.PROC_STS IN ('AG','MM')			
+					</otherwise>
+				</choose>
+				<if test='srchTrvlSts != null and srchTrvlSts != ""'>
+					AND	TTI.TRVL_STS = #{srchTrvlSts}
+				</if>
+				<if test='GRP_SN != null and GRP_SN != ""'>
+					<choose>
+						<when test='GRP_SN == "2"'>
+							AND TAI.MEMORG_SN = (SELECT MEMORG_SN FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})					
+						</when>
+						<otherwise>
+							<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+								AND TAI.MEMORG_SN = #{srchMemOrgSn}
+							</if>	
+							AND	TTI.TRVL_STS != 'TP'
+						</otherwise>
+					</choose>
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+				</if>
+				) A10
+				ORDER BY A10.TRVL_SN DESC
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<!-- 체육요원 국외여행 목록 엑셀다운로드 조회 -->
+	<select id="selectTravelSelectExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	ROW_NUMBER () OVER (ORDER BY TTI.TRVL_SN DESC) AS RNUM
+				,TTI.TRVL_SN
+				,TTI.MLTR_ID
+				,TTI.FRGN_ADDR
+				,TTI.TRVL_STS
+                ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TTI.TRVL_STS AND A.CMMN_SN = '202111150000352') TRVL_STS_NM
+                ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                ,TAI.PROC_STS 
+                ,CASE	WHEN TAI.PROC_STS = 'AG' THEN '복무'
+                    	WHEN TAI.PROC_STS = 'MM' THEN '만료'
+                    	END PROC_STS_NM
+                ,TAI.APPL_NM
+                ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+                ,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+                ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+                ,TAI.GAME_CD
+                ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TO_CHAR(TTI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+				,TTI.REGR_ID
+				,(SELECT MAX((SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.TRVL_APPL_DV AND B.CMMN_SN = '202111150000353')) 
+					FROM TRMA_TRVL_RECD_I A 
+				   WHERE A.TRVL_SN = TTI.TRVL_SN) TRVL_APPL_DV
+		FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMA_TRVL_I TTI
+		WHERE	1=1
+	             AND TAI.APPL_SN = TAAI.APPL_SN
+	             AND TAAI.MLTR_ID = TTI.MLTR_ID
+		<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+			AND TTI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TTI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+			AND	TAI.GAME_CD = #{srchGameCd}
+		</if>
+		<choose>
+			<when test='srchProcSts != null and srchProcSts != ""'>
+				AND TAI.PROC_STS = #{srchProcSts}					
+			</when>
+			<otherwise>
+				AND TAI.PROC_STS IN ('AG','MM')			
+			</otherwise>
+		</choose>
+		<if test='srchTrvlSts != null and srchTrvlSts != ""'>
+			AND	TTI.TRVL_STS = #{srchTrvlSts}
+		</if>
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND TAI.MEMORG_SN = (SELECT MEMORG_SN FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})					
+				</when>
+				<otherwise>
+					<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+						AND TAI.MEMORG_SN = #{srchMemOrgSn}
+					</if>	
+					AND	TTI.TRVL_STS != 'TP'
+				</otherwise>
+			</choose>
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+		</if>
+	</select>
+	
+	<!-- 체육요원 국외여행 상세 조회 -->
+	<select id="selectTravelDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	TTI.TRVL_SN
+				,TTI.MLTR_ID
+                ,TAI.APPL_SN
+				,TTI.TRVL_STS
+                ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TTI.TRVL_STS AND A.CMMN_SN = '202111150000352') TRVL_STS_NM
+                ,(SELECT A.MEMORG_NM FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                ,(SELECT A.ORG_MNGR_EMAIL ORG_MNGR_EMAIL FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) ORG_MNGR_EMAIL
+                , TAI.APPL_NM
+                , TO_CHAR(TO_DATE(TAI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+                , TAI.ADDR 
+                , TAI.ADDR_DTL 
+                , TAI.EMAIL EMAIL 
+                , F_GET_DEC_CP_NO(TAI.CP_NO) CP_NO
+                , TAI.MEMORG_SN
+                , TAI.APPL_STS
+                , TAI.PROC_STS 
+                , (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+                , TAI.TEAM_NM
+                ,(SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAAI.CTRL_MMA_CD AND D10.CMMN_SN = '202111050000337') CTRL_MMA_CD
+				,TTI.REG_DTM
+				,TTI.REGR_ID
+				, CASE	WHEN TAI.UPDR_ID IS NOT NULL THEN (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TTI.UPDR_ID ) 
+						ELSE (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TTI.REGR_ID )
+						END UPDR_NM
+                , CASE 	WHEN TAI.UPDT_DTM IS NOT NULL THEN TO_CHAR(TTI.UPDT_DTM,'YYYY-MM-DD') 
+                		ELSE TO_CHAR(TTI.REG_DTM,'YYYY-MM-DD') 
+                		END UPDT_DT
+				,CASE WHEN TTI.RECEIPT_DTM IS NULL AND TRVL_STS IN ( 'AP','KY') THEN TO_CHAR(SYSDATE,'YYYY-MM-DD') ELSE TO_CHAR(TTI.RECEIPT_DTM,'YYYY-MM-DD') END RECEIPT_DTM 
+				,DBMS_LOB.SUBSTR(TTI.RECEIPT_REASON) RECEIPT_REASON 
+				,CASE WHEN TTI.DSPTH_DTM IS NULL AND TRVL_STS IN ( 'AP','KY') THEN TO_CHAR(SYSDATE,'YYYY-MM-DD') ELSE TO_CHAR(TTI.DSPTH_DTM,'YYYY-MM-DD') END DSPTH_DTM 
+				,DBMS_LOB.SUBSTR(TTI.DSPTH_REASON) DSPTH_REASON
+				,(SELECT A.FILE_SN FROM TRMZ_FILE_F A WHERE A.GRP_REFR_KEY = TTI.ATCH_FILE_ID5) ATCH_FILE_ID5
+				,(SELECT A.FILE_ORGIN_NM FROM TRMZ_FILE_F A WHERE A.GRP_REFR_KEY = TTI.ATCH_FILE_ID5) ATCH_FILE_NM5
+		FROM	TRMM_APPL_I TAI, 
+				TRMM_APPL_ACPT_I TAAI, 
+				TRMA_TRVL_I TTI
+		WHERE	TAI.APPL_SN = TAAI.APPL_SN
+        AND 	TAAI.MLTR_ID = TTI.MLTR_ID
+        AND 	TTI.TRVL_SN = #{TRVL_SN}
+	</select>
+	
+	<!-- 선택한 체육요원 국외여행정보 목록 조회 -->
+	<select id="selectTravelInfoList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	TTI.TRVL_SN
+				,TTI.MLTR_ID
+				,TTI.FRGN_ADDR
+				,TTI.TRVL_STS
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TTI.TRVL_STS AND A.CMMN_SN = '202111150000352') TRVL_STS_NM
+				,TTI.ATCH_FILE_ID5
+				,TTI.REG_DTM
+				,TTI.REGR_ID
+				,TTI.UPDT_DTM
+				,TTI.UPDR_ID
+				,TTRI.TRVL_NATION
+				,TTRI.RECD_SN
+				,(SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = TTRI.TRVL_APPL_DV AND B.CMMN_SN = '202111150000353') TRVL_APPL_DV
+				,TO_CHAR(TTRI.TRVL_START_DT,'YYYY-MM-DD') TRVL_START_DT
+				,TO_CHAR(TTRI.TRVL_END_DT,'YYYY-MM-DD') TRVL_END_DT
+				,DBMS_LOB.SUBSTR(TTRI.TRVL_GOAL) TRVL_GOAL
+		FROM	TRMA_TRVL_I TTI,
+				TRMA_TRVL_RECD_I TTRI
+		WHERE	TTI.TRVL_SN = TTRI.TRVL_SN
+		<if test='MLTR_ID != null and MLTR_ID != ""'>
+		AND		TTI.MLTR_ID = #{MLTR_ID}
+		</if>
+		<if test='TRVL_SN != null and TRVL_SN != ""'>
+		AND		TTI.TRVL_SN = #{TRVL_SN}
+		</if>
+	</select>
+
+	<!-- 선택한 체육요원 국외여행정보 상세 조회 -->
+	<select id="selectTravelInfoDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	TTI.TRVL_SN
+				,TTI.MLTR_ID
+				,TTRI.RECD_SN
+				,TTI.FRGN_ADDR
+				,TTI.REG_DTM
+				,TTI.REGR_ID
+				,TTI.UPDT_DTM
+				,TTI.UPDR_ID
+				,TTRI.TRVL_NATION
+				,TTRI.TRVL_APPL_DV
+				,TTRI.ATCH_FILE_ID1
+				,TO_CHAR(TTRI.TRVL_START_DT,'YYYYMMDD') TRVL_START_DT
+				,TO_CHAR(TTRI.TRVL_END_DT,'YYYYMMDD') TRVL_END_DT
+				,DBMS_LOB.SUBSTR(TTRI.TRVL_GOAL) TRVL_GOAL
+				,DBMS_LOB.SUBSTR(TTRI.EXTN_REASON) EXTN_REASON
+				,DBMS_LOB.SUBSTR(TTRI.BGNN_GRNT_INFO) BGNN_GRNT_INFO
+				,TTI.TRVL_STS
+		FROM	TRMA_TRVL_I TTI,
+				TRMA_TRVL_RECD_I TTRI
+		WHERE	TTI.TRVL_SN = TTRI.TRVL_SN
+		AND		TTRI.RECD_SN = #{RECD_SN}
+	</select>
+	
+	<!-- 선택한 체육요원 국외여행정보 insert -->
+	<insert id="insertTravel" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="TRVL_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMA_TRVL_I') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.etc.insertTravel*/
+		INSERT INTO TRMA_TRVL_I(
+			TRVL_SN
+			,MLTR_ID
+			,FRGN_ADDR
+			,TRVL_STS
+			,REG_DTM
+			,REGR_ID
+		) VALUES (
+			#{TRVL_SN}
+			,#{MLTR_ID}
+			,#{FRGN_ADDR, jdbcType=VARCHAR}
+            ,#{TRVL_STS, jdbcType=VARCHAR}
+            ,SYSDATE
+			,#{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 선택한 체육요원 국외여행정보 update -->
+	<update id="updateTravel" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updateTravel*/
+		UPDATE	TRMA_TRVL_I
+		SET		FRGN_ADDR = #{FRGN_ADDR, jdbcType=VARCHAR}
+				,TRVL_STS = #{TRVL_STS, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	TRVL_SN = #{TRVL_SN}
+	</update>
+
+	<!-- 선택한 체육요원 국외여행정보 신규 및 연장 insert -->
+	<insert id="insertTravelRecd" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="RECD_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMA_TRVL_RECD_I') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.etc.insertTravelRecd*/
+		INSERT INTO TRMA_TRVL_RECD_I(
+			RECD_SN
+			,TRVL_SN
+			,TRVL_APPL_DV
+			,TRVL_NATION
+			,TRVL_START_DT
+			,TRVL_END_DT
+			,TRVL_GOAL
+			,EXTN_REASON
+			,BGNN_GRNT_INFO
+			,ATCH_FILE_ID1
+			,REG_DTM
+			,REGR_ID
+		) VALUES (
+			#{RECD_SN}
+			,#{TRVL_SN}
+			,#{TRVL_APPL_DV, jdbcType=VARCHAR}
+			,#{TRVL_NATION, jdbcType=VARCHAR}
+			,#{TRVL_START_DT, jdbcType=VARCHAR}
+			,#{TRVL_END_DT, jdbcType=VARCHAR}
+            ,#{TRVL_GOAL, jdbcType=VARCHAR}
+            ,#{EXTN_REASON, jdbcType=VARCHAR}
+            ,#{BGNN_GRNT_INFO, jdbcType=VARCHAR}
+            ,#{ATCH_FILE_ID1, jdbcType=VARCHAR}
+            ,SYSDATE
+			,#{EMP_NO}
+		)
+	</insert>
+
+	<!-- 선택한 체육요원 국외여행정보 신규 및 연장 update -->
+	<update id="updateTravelRecd" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updateTravelRecd*/
+		UPDATE	TRMA_TRVL_RECD_I
+		SET		TRVL_APPL_DV = #{TRVL_APPL_DV, jdbcType=VARCHAR}
+				,TRVL_NATION = #{TRVL_NATION, jdbcType=VARCHAR}
+				,TRVL_START_DT = #{TRVL_START_DT, jdbcType=VARCHAR}
+				,TRVL_END_DT = #{TRVL_END_DT, jdbcType=VARCHAR}
+				,TRVL_GOAL = #{TRVL_GOAL, jdbcType=VARCHAR}
+				,EXTN_REASON = #{EXTN_REASON, jdbcType=VARCHAR}
+				,BGNN_GRNT_INFO = #{BGNN_GRNT_INFO, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	RECD_SN = #{RECD_SN}
+	</update>
+
+	<!-- 체육요원 국외여행정보 신청 delete -->
+	<delete id="deleteTravel" parameterType="KSPOMap">
+		/*org.kspo.web.etc.deleteTravel*/
+		DELETE 
+		FROM	TRMA_TRVL_I
+		WHERE	TRVL_SN = #{TRVL_SN}
+	</delete>
+	
+	<!-- 선택한 체육요원 국외여행정보 delete -->
+	<delete id="deleteTravelRecd" parameterType="KSPOMap">
+		/*org.kspo.web.etc.deleteTravelRecd*/
+		DELETE 
+		FROM	TRMA_TRVL_RECD_I
+		WHERE	1=1
+		<if test='RECD_SN != null and RECD_SN != ""'>
+		AND		RECD_SN = #{RECD_SN}
+		</if>
+		<if test='TRVL_SN != null and TRVL_SN != ""'>
+		AND		TRVL_SN = #{TRVL_SN}
+		</if>
+	</delete>
+	
+	<!-- 체육요원 선택된 국외여행 공단 접수 혹은 반려 -->
+	<update id="updateTravelReceipt" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updateTravelReceipt*/
+		UPDATE	TRMA_TRVL_I
+		SET		TRVL_STS = #{TRVL_STS}
+				,RECEIPT_DTM = SYSDATE
+				,RECEIPT_REASON = #{RECEIPT_REASON, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	TRVL_SN = #{TRVL_SN}
+	</update>
+
+	<!-- 체육요원 선택된 국외여행 승인 혹은 미승인 -->
+	<update id="updateTravelApproval" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updateTravelApproval*/
+		UPDATE	TRMA_TRVL_I
+		SET		TRVL_STS = #{TRVL_STS}
+				,DSPTH_DTM = SYSDATE
+				,DSPTH_REASON = #{DSPTH_REASON, jdbcType=VARCHAR}
+				,ATCH_FILE_ID5 = #{ATCH_FILE_ID5, jdbcType=VARCHAR}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	TRVL_SN = #{TRVL_SN}
+	</update>
+	
+</mapper>

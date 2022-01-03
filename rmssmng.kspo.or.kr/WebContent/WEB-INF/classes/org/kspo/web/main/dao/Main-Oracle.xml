@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.main.dao.MainDAO">
+	<!-- 대시보드 - 업무분야별 -->
+	<select id="selectPartCount" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT 
+		    1 AS RNUM
+		    , '편입신청' AS DASH_NM
+		    , NVL(SUM(CASE APPL_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE APPL_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE APPL_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE APPL_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(APPL_STS) AS ALL_CNT
+		  FROM TRMM_APPL_I  
+		WHERE APPL_STS IN ('TP','TA','KY','MY') 
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND MEMORG_SN = #{SESSION_MEMORG_SN}
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+		    AND APPL_DT LIKE #{INSPT_YEAR}||'%'
+		UNION ALL
+		SELECT 
+		    2 AS RNUM
+		    , '공익복무 계획' AS DASH_NM
+		    , NVL(SUM(CASE A.PLAN_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.PLAN_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , 0 MY_CNT
+		    , NVL(SUM(CASE A.PLAN_STS WHEN 'KY' THEN 1 ELSE 0 END),0) MY_CNT <!-- 공익복무계획은 공단승인밖에 없음. -->
+		    , COUNT(PLAN_STS) AS ALL_CNT
+		  FROM TRMV_VLUN_PLAN_I A, TRMM_APPL_ACPT_I B
+		WHERE A.PLAN_STS IN ('TP','TA','KY','MY') 
+		  AND B.MLTR_ID = A.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND B.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+			AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+		UNION ALL
+		SELECT 
+		    3 AS RNUM
+		    , '공익복무 실적' AS DASH_NM
+		    , NVL(SUM(CASE A.RECD_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.RECD_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE A.RECD_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE A.RECD_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(RECD_STS) AS ALL_CNT
+		  FROM TRMV_VLUN_RECD_M A, TRMV_VLUN_PLAN_I B, TRMM_APPL_ACPT_I C
+		WHERE A.RECD_STS IN ('TP','TA','KY','MY')
+		  AND B.VLUN_PLAN_SN = A.VLUN_PLAN_SN
+		  AND C.MLTR_ID = B.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND C.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+		    AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+		UNION ALL
+		SELECT 
+		    4 AS RNUM
+		    , '신상이동' AS DASH_NM
+		    , NVL(SUM(CASE A.TRNS_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.TRNS_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE A.TRNS_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE A.TRNS_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(TRNS_STS) AS ALL_CNT
+		  FROM TRMT_TRNS_I  A, TRMM_APPL_ACPT_I B
+		WHERE A.TRNS_STS IN ('TP','TA','KY','MY') 
+		  AND B.MLTR_ID = A.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND B.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+			AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+		UNION ALL
+		SELECT 
+		    5 AS RNUM
+		    , '국외여행' AS DASH_NM
+		    , NVL(SUM(CASE A.TRVL_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.TRVL_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE A.TRVL_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE A.TRVL_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(TRVL_STS) AS ALL_CNT
+		  FROM TRMA_TRVL_I A, TRMM_APPL_ACPT_I B
+		WHERE A.TRVL_STS IN ('TP','TA','KY','MY') 
+		  AND B.MLTR_ID = A.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND B.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+			AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+		UNION ALL
+		SELECT 
+		    6 AS RNUM
+		    , '겸직허가' AS DASH_NM
+		    , NVL(SUM(CASE A.CONC_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.CONC_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE A.CONC_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE A.CONC_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(CONC_STS) AS ALL_CNT
+		  FROM TRMC_CONC_I A, TRMM_APPL_ACPT_I B
+		WHERE A.CONC_STS IN ('TP','TA','KY','MY') 
+		  AND B.MLTR_ID = A.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND B.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+			AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+		UNION ALL
+		SELECT 
+		    7 AS RNUM
+		    , '징계' AS DASH_NM
+		    , NVL(SUM(CASE A.DSPL_STS WHEN 'TP' THEN 1 ELSE 0 END),0) TP_CNT
+		    , NVL(SUM(CASE A.DSPL_STS WHEN 'TA' THEN 1 ELSE 0 END),0) TA_CNT
+		    , NVL(SUM(CASE A.DSPL_STS WHEN 'KY' THEN 1 ELSE 0 END),0) KY_CNT
+		    , NVL(SUM(CASE A.DSPL_STS WHEN 'MY' THEN 1 ELSE 0 END),0) MY_CNT
+		    , COUNT(DSPL_STS) AS ALL_CNT
+		  FROM TRMD_DSPL_I A, TRMM_APPL_ACPT_I B
+		WHERE A.DSPL_STS IN ('TP','TA','KY','MY') 
+		  AND B.MLTR_ID = A.MLTR_ID
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND B.APPL_SN IN (SELECT APPL_SN FROM TRMM_APPL_I WHERE MEMORG_SN = #{SESSION_MEMORG_SN})
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+		    AND A.REG_DTM <![CDATA[>=]]> TO_DATE(#{INSPT_YEAR}||'0101000000','YYYYMMDDHH24MISS') AND A.REG_DTM <![CDATA[<=]]> TO_DATE(#{INSPT_YEAR}||'1231235959','YYYYMMDDHH24MISS')
+	</select>
+	
+	<!-- 대시보드  - 사용자계정 신규신청 및 승인대기 -->
+	<select id="selectApplyCount" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT 
+		  COUNT(*) as APPLY_CNT
+		  FROM TRMZ_MNGR_M 
+		 WHERE GRP_SN IN (2,3)
+		  AND ACNT_STS = 'TA'
+		  AND KSPO_YN = 'N'
+		  AND NVL(DEL_YN,'N') = 'N'
+		  AND NVL(USE_YN,'Y') = 'Y'
+	</select>
+	
+	
+	<!-- 대시보드  - 복무만료 대상자 -->
+	<select id="selectExprMmCount" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT
+		 	COUNT(EXPR_DT) AS MON_ALL_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '01' THEN 1 ELSE 0 END),0) MON01_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '02' THEN 1 ELSE 0 END),0) MON02_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '03' THEN 1 ELSE 0 END),0) MON03_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '04' THEN 1 ELSE 0 END),0) MON04_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '05' THEN 1 ELSE 0 END),0) MON05_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '06' THEN 1 ELSE 0 END),0) MON06_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '07' THEN 1 ELSE 0 END),0) MON07_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '08' THEN 1 ELSE 0 END),0) MON08_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '09' THEN 1 ELSE 0 END),0) MON09_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '10' THEN 1 ELSE 0 END),0) MON10_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '11' THEN 1 ELSE 0 END),0) MON11_CNT
+		 	, NVL(SUM(CASE SUBSTR(EXPR_DT,5,2) WHEN '12' THEN 1 ELSE 0 END),0) MON12_CNT
+		 FROM TRMM_APPL_I 
+		WHERE APPL_STS = 'MY'
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND MEMORG_SN = #{SESSION_MEMORG_SN}
+				</when>
+				<otherwise>
+					
+				</otherwise>
+			</choose>
+		</if>
+		<if test='EXPR_YEAR != null and EXPR_YEAR != ""'>
+			AND EXPR_DT LIKE #{EXPR_YEAR}||'%'
+		</if>
+	</select>
+</mapper>

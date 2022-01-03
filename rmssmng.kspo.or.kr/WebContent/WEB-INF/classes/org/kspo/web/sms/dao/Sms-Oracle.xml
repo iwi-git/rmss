@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.sms.dao.SmsDAO">
+	
+	<!-- sms 로그 저장 -->
+	<insert id="insertSmsLog"  parameterType="KSPOMap">
+		/*org.kspo.web.sms.insertSmsLog*/
+		INSERT INTO TRMZ_SMS_L(
+		  	SMS_LOG_SN
+			,SMS_SE
+			,SMS_CN
+			,TEMPLATE_CD
+			,CALL_NM
+			,CALL_PHONE
+			,REG_DTM
+			,REGR_ID
+			,UPDT_DTM
+			,UPDR_ID
+		)VALUES(
+		 	F_GET_SEQ('TRMZ_SMS_L')
+			,'S'
+			,#{msg, jdbcType=VARCHAR}
+			,#{templatecode, jdbcType=VARCHAR}
+			,#{callname, jdbcType=VARCHAR}
+			,#{callphone, jdbcType=VARCHAR}
+			,SYSDATE
+			,#{EMP_NO, jdbcType=VARCHAR}
+			,SYSDATE
+			,#{EMP_NO, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+</mapper>

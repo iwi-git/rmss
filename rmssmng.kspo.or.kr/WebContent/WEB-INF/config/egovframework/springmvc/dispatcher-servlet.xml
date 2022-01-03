@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:p="http://www.springframework.org/schema/p"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xmlns:mvc="http://www.springframework.org/schema/mvc"
+        xmlns:task="http://www.springframework.org/schema/task"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+                http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+                http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+                http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.0.xsd">
+
+    <context:component-scan base-package="egovframework,org.kspo.web,org.kspo.framework,org.kspo.framework.exception">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+	
+	<task:scheduler id="jobScheduler" pool-size="10"/>
+	<task:annotation-driven scheduler="jobScheduler"/>
+	
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<mvc:annotation-driven>
+		<mvc:argument-resolvers>
+			<bean class="org.kspo.framework.resolver.AnnotationReqMapArgumentResolver"></bean>
+		</mvc:argument-resolvers>
+	</mvc:annotation-driven>
+    
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>
+			<mvc:exclude-mapping path="/login/**"/>
+			<mvc:exclude-mapping path="/sms/insertSendSmsJs*"/>
+			<mvc:exclude-mapping path="/owncert/**"/>
+			<bean id="frontInterceptor" class="org.kspo.framework.interceptor.FrontInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+	
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+        <property name="webBindingInitializer">
+            <bean class="egovframework.example.cmmn.web.EgovBindingInitializer"/>
+        </property>
+    </bean>
+	
+	<!--
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping"/>
+
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="defaultErrorView" value="egovframework/example/cmmn/egovError"/>
+        <property name="exceptionMappings">
+            <props>
+                <prop key="org.springframework.dao.DataAccessException">egovframework/example/cmmn/dataAccessFailure</prop>
+                <prop key="org.springframework.transaction.TransactionException">egovframework/example/cmmn/transactionFailure</prop>
+                <prop key="egovframework.rte.fdl.cmmn.exception.EgovBizException">egovframework/example/cmmn/egovError</prop>
+                <prop key="org.springframework.security.AccessDeniedException">egovframework/example/cmmn/egovError</prop>
+            </props>
+        </property>
+    </bean>	
+	-->
+	
+	
+    <bean class="org.springframework.web.servlet.view.UrlBasedViewResolver" p:order="3"
+	    p:viewClass="org.springframework.web.servlet.view.JstlView"
+	    p:prefix="/WEB-INF/jsp/" p:suffix=".jsp"/>
+	
+    <!-- For Pagination Tag -->
+    <bean id="kspoRenderer" class="org.kspo.framework.pagination.KspoPagnationFormatRenderer"/>
+    <bean id="paginationManager" class="org.kspo.framework.pagination.KspoPaginationManager">
+        <property name="rendererType">
+            <map>
+                <entry key="text" value-ref="kspoRenderer"/>
+            </map>
+        </property>
+    </bean>
+	<!-- /For Pagination Tag -->
+
+	<bean id="spring.RegularCommonsMultipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver"></bean>
+	<alias name="spring.RegularCommonsMultipartResolver" alias="multipartResolver" />
+</beans>

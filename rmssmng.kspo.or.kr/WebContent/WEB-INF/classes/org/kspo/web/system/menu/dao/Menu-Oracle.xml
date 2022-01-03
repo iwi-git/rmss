@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.system.menu.dao.MenuDAO">
+	
+	<!-- 메뉴 관리 대메뉴 조회 -->
+	<select id="selectMenuMstList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Menu.selectMenuMstList*/
+		SELECT	A.*
+				, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				, NVL(#{pageSize},10) AS PAGE_SIZE
+				, (SELECT SUB.CNTNT_FST FROM TRMZ_CMMN_CODE_D SUB WHERE SUB.CMMN_SN = '16' AND SUB.ALT_CODE = A.MENU_TY) AS MENU_TY_NM
+		FROM	(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM	(
+						SELECT	ROWNUM AS RNUM
+								, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+								, A100.MENU_SN
+								, A100.MENU_NM
+								, A100.MENU_LEVEL
+								, A100.UP_MENU_SN
+								, A100.MENU_URL
+								, A100.MENU_TY
+								, A100.MENU_DC
+								, A100.ORD
+								, A100.USE_YN
+								, TO_CHAR(A100.REG_DTM,'YYYY-MM-DD') AS REG_DT
+								, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A100.REGR_ID) AS REGR_ID
+								, TO_CHAR(A100.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+								, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A100.UPDR_ID) AS UPDR_ID
+						FROM	TRMZ_MENU_MNG_M A100
+						WHERE	A100.UP_MENU_SN IS NULL
+						<if test='MENU_SN != null and MENU_SN != ""'>
+							AND		A100.MENU_SN = #{MENU_SN}
+						</if>
+						<if test='MENU_NM != null and MENU_NM != ""'>
+							AND		A100.MENU_NM LIKE '%'||#{MENU_NM}||'%'	
+						</if>
+						ORDER BY A100.MENU_SN
+						) A10
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+		ORDER BY A.MENU_SN
+	</select>
+	
+	<!-- 메뉴 관리 소메뉴 조회 -->
+	<select id="selectMenuDtlList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Menu.selectMenuDtlList*/
+		SELECT	A10.MENU_SN
+				, A10.MENU_NM
+				, A10.MENU_LEVEL
+				, A10.UP_MENU_SN
+				, A10.MENU_URL
+				, A10.MENU_TY
+				, (SELECT SUB.CNTNT_FST FROM TRMZ_CMMN_CODE_D SUB WHERE SUB.CMMN_SN = '16' AND SUB.ALT_CODE = A10.MENU_TY) AS MENU_TY_NM
+				, A10.MENU_DC
+				, A10.ORD
+				, A10.USE_YN
+				, TO_CHAR(A10.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.REGR_ID) AS REGR_ID
+				, TO_CHAR(A10.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_MENU_MNG_M A10
+		WHERE	A10.UP_MENU_SN = #{MENU_SN}
+		ORDER BY A10.MENU_SN
+	</select>
+	
+	<!-- 메뉴 관리 대메뉴 조회(단건) -->
+	<select id="selectMenuMst" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Menu.selectMenuMst*/
+		SELECT	A10.MENU_SN
+				, A10.MENU_NM
+				, A10.MENU_LEVEL
+				, A10.UP_MENU_SN
+				, A10.MENU_URL
+				, A10.MENU_TY
+				, (SELECT SUB.CNTNT_FST FROM TRMZ_CMMN_CODE_D SUB WHERE SUB.CMMN_SN = '16' AND SUB.ALT_CODE = A10.MENU_TY) AS MENU_TY_NM
+				, A10.MENU_DC
+				, A10.ORD
+				, A10.USE_YN
+				, TO_CHAR(A10.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.REGR_ID) AS REGR_ID
+				, TO_CHAR(A10.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_MENU_MNG_M A10
+		WHERE	A10.MENU_SN = #{MENU_SN}
+	</select>
+
+	<!-- 메뉴 관리 소메뉴 조회(단건) -->
+	<select id="selectMenuDtl" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Menu.selectMenuDtl*/
+		SELECT	A10.MENU_SN
+				, A10.MENU_NM
+				, A10.MENU_LEVEL
+				, A10.UP_MENU_SN
+				, A10.MENU_URL
+				, A10.MENU_TY
+				, (SELECT SUB.CNTNT_FST FROM TRMZ_CMMN_CODE_D SUB WHERE SUB.CMMN_SN = '16' AND SUB.ALT_CODE = A10.MENU_TY) AS MENU_TY_NM
+				, A10.MENU_DC
+				, A10.ORD
+				, A10.USE_YN
+				, TO_CHAR(A10.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.REGR_ID) AS REGR_ID
+				, TO_CHAR(A10.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_MENU_MNG_M A10
+		WHERE	A10.UP_MENU_SN = #{UP_MENU_SN}
+		AND		A10.MENU_SN = #{MENU_SN}
+	</select>
+		
+	<!-- 메뉴 관리 대메뉴 수정(단건) -->
+	<update id="updateMenu" parameterType="KSPOMap">
+		/*org.kspo.web.Menu.updateMenu*/
+		UPDATE	TRMZ_MENU_MNG_M
+		SET		MENU_NM = #{MENU_NM,jdbcType=VARCHAR}
+				, MENU_URL = #{MENU_URL,jdbcType=VARCHAR}
+				, MENU_TY = #{MENU_TY,jdbcType=VARCHAR}
+				, MENU_DC = #{MENU_DC,jdbcType=VARCHAR}
+				, ORD = #{ORD,jdbcType=VARCHAR}
+				, USE_YN = #{USE_YN,jdbcType=VARCHAR}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	MENU_SN = #{MENU_SN}
+	</update>
+	
+	<!-- 메뉴 관리 대메뉴 등록(단건) -->
+	<insert id="insertMenu" parameterType="KSPOMap">
+		/*org.kspo.web.Menu.insertMenu*/
+		INSERT INTO TRMZ_MENU_MNG_M (
+			MENU_SN
+			, MENU_NM
+			, MENU_URL
+			, MENU_TY
+			<if test='UP_MENU_SN != null and UP_MENU_SN != ""'>
+				, UP_MENU_SN
+			</if>
+			, MENU_DC
+			, ORD
+			, USE_YN
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			(SELECT F_GET_SEQ('TRMZ_MENU_MNG_M') FROM DUAL)
+			, #{MENU_NM}
+			, #{MENU_URL,jdbcType=VARCHAR}
+			, #{MENU_TY,jdbcType=VARCHAR}
+			<if test='UP_MENU_SN != null and UP_MENU_SN != ""'>
+				, #{UP_MENU_SN}
+			</if>
+			, #{MENU_DC,jdbcType=VARCHAR}
+			, #{ORD,jdbcType=VARCHAR}
+			, #{USE_YN}
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 메뉴 관리 대메뉴 삭제(단건) -->
+	<delete id="deleteMenuList" parameterType="KSPOMap">
+		/*org.kspo.web.Menu.deleteMenuList*/
+		DELETE FROM TRMZ_MENU_MNG_M
+		WHERE MENU_SN IN(
+			SELECT	MENU_SN
+			FROM	TRMZ_MENU_MNG_M
+			START WITH MENU_SN  IN
+			<foreach collection="CHK" item="MENU_SN" open="(" close=")" separator=",">
+				#{MENU_SN}
+			</foreach>
+			CONNECT BY PRIOR MENU_SN = UP_MENU_SN)
+	</delete>
+	
+	<!-- 권환 관리 권한설정 메뉴 확인 -->
+	<select id="insertCheckByAuthMenu" parameterType="KSPOMap" resultType="int">
+		/*org.kspo.web.Menu.insertCheckByAuthMenu*/
+		SELECT	COUNT(*)
+		FROM	TRMZ_AUTH_GRP_D
+		WHERE	GRP_SN  = #{P_GRP_SN}
+		AND		MENU_SN = #{MENU_SN}
+	</select>
+	
+	<!-- 회원 권한별 왼쪽 메뉴 조회 -->
+	<select id="selectLeftMenuList" resultType="KSPOMap">
+		/*org.kspo.web.Menu.selectleftMenuList*/
+		SELECT	ROWNUM AS RNUM
+				, A.MENU_SN
+				, A.UP_MENU_SN
+				, A.MENU_NM
+				, A.MENU_URL
+				, B.GRP_SN
+		FROM	(
+				SELECT	A10.MENU_SN
+						, A10.UP_MENU_SN
+						, A10.MENU_NM
+						, A10.MENU_URL
+				FROM	TRMZ_MENU_MNG_M A10
+				WHERE	MENU_TY = '1'
+				START WITH A10.UP_MENU_SN IS NULL
+				CONNECT BY PRIOR A10.MENU_SN = A10.UP_MENU_SN
+				ORDER SIBLINGS BY A10.ORD
+				) A
+				, (
+				SELECT	B10.GRP_SN
+						, B10.MENU_SN
+				FROM	TRMZ_AUTH_GRP_D B10
+				WHERE	B10.READ_YN = 'Y'
+				) B
+		WHERE	A.MENU_SN = B.MENU_SN
+	</select>
+	
+</mapper>

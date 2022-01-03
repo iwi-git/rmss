@@ -1,0 +1,594 @@
+<!-- Header -->
+<!--#include virtual="/contents/_personnel/include/header.html" -->
+
+<!-- Top + Snv -->
+<!--#include virtual="/contents/_personnel/include/top.html" -->
+
+<!-- 타이틀 -->
+<div class="com-title-group">
+    <h2>봉사활동 실적등록</h2>
+</div>
+<!-- //타이틀 -->
+
+
+<!-- 검색영역 -->
+<div class="com-table">
+    <table class="table-board">
+        <caption></caption>
+        <colgroup>
+            <col style="width:150px;">
+            <col style="width:400px;">
+            <col style="width:150px;">
+            <col style="width:auto;">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="t-title">등록일</td>
+                <td>
+                    <ul class="com-radio-list">
+                        <li>
+                            <input id="datepicker" type="text" class="datepick smal"> ~ <input id="datepicker" type="text" class="datepick smal">
+                        </li>
+                    </ul>
+                </td>
+                <td class="t-title">체육단체</td>
+                <td>
+                    <select id="" class="smal">
+                        <option value="선택">선택</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td class="t-title">대상기관</td>
+                <td><input type="text" class="smal" placeholder=""></td>
+                <td class="t-title">종목명</td>
+                <td>
+                    <select id="" class="smal">
+                        <option value="선택">선택</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td class="t-title">처리상태</td>
+                <td>
+                    <select id="" class="smal">
+                        <option value="선택">선택</option>
+                    </select>
+                </td>
+                <td class="t-title">키워드</td>
+                <td>
+                    <ul class="com-radio-list">
+                        <li>
+                            <select id="" class="smal">
+                                <option value="선택">선택</option>
+                            </select>
+                            <input type="text" class="smal" placeholder="">
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="com-btn-group center">
+    <button class="btn red write" type="button">검색</button>
+</div>
+<!-- //검색영역 -->
+
+<div class="com-result">
+    <div class="float-l">
+        <span class="total-num">조회결과 <b>000</b>건</span>
+    </div>
+    <div class="float-r">
+        <button class="btn icon-info type01" type="button">엑셀데이터 저장하기</button> <!-- 20211109 수정 -->
+    </div>
+</div>
+
+<div class="com-grid">
+    <table class="table-grid">
+        <caption></caption>
+        <colgroup>
+            <col style="width:50px">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:9%">
+            <col style="width:6%">
+            <col style="width:6%">
+            <col style="width:7%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:9%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:auto">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>번호</th>
+                <th>관리번호</th>
+                <th>이름</th>
+                <th>생년월일</th>
+                <th>종목</th>
+                <th>구분</th>
+                <th>활동분야</th>
+                <th>대상기관</th>
+                <th>봉사건수</th>
+                <th>등록일</th>
+                <th>인정시간</th>
+                <th>처리상태</th>
+                <th>체육단체</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국내</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>-</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국내</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>-</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국외</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>-</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국외</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>-</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국외</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>50</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국내</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>30</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국내</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>5</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td>홍길동</td>
+                <td>0000-00-00</td>
+                <td></td>
+                <td>국내</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td>-</td>
+                <td>임시저장</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="13" class="center">일치하는 게시물이 없습니다.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="com-btn-group put">
+    <div class="float-r">
+        <button class="btn navy rmvcrr" type="button">신규</button>
+    </div>
+</div>
+
+<div class="com-paging">
+    <div class="paging-first"><a href="#">처음으로</a></div>
+    <div class="paging-prev"><a href="#">이전</a></div>
+    <ul class="paging-num">
+        <li class="on"><a href="#">1</a></li>
+        <li><a href="#">2</a></li>
+        <li><a href="#">3</a></li>
+        <li><a href="#">4</a></li>
+        <li><a href="#">5</a></li>
+        <li><a href="#">6</a></li>
+        <li><a href="#">7</a></li>
+        <li><a href="#">8</a></li>
+        <li><a href="#">9</a></li>
+        <li><a href="#">10</a></li>
+    </ul>
+    <div class="paging-next"><a href="#">다음</a></div>
+    <div class="paging-last"><a href="#">끝으로</a></div>
+</div>
+
+<!-- Footer -->
+<!--#include virtual="/contents/_personnel/include/footer.html" -->
+
+<!-- 팝업영역 -->
+<div class="cpt-popup reg03 active"> <!-- class:active 팝업 on/off -->
+    <div class="dim"></div>
+    <div class="popup">
+        <div class="pop-head">
+            봉사활동 실적등록
+            <button class="pop-close">
+                <img src="/common/images/common/icon_close.png" alt="닫기 버튼 이미지">
+            </button>
+        </div>
+        <div class="pop-body">
+            <div class="process-status">처리상태 : <b class="t-blue">임시저장</b></div>
+            <div class="com-h3 add">대상자 인적사항
+                <div class="right-area"><p class="required">필수입력</p></div>
+            </div>
+
+            <div class="com-table">
+                <table class="table-board">
+                    <caption></caption>
+                    <colgroup>
+                        <col style="width:130px;">
+                        <col style="width:auto;">
+                        <col style="width:130px;">
+                        <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td class="t-title">이름<span class="t-red"> *</span></td>
+                            <td class="input-td">
+                                <div class="search-box">
+                                    <input type="text">
+                                    <button type="button">찾기</button>
+                                </div>
+                            </td>
+                            <td class="t-title">관리번호</td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">생년월일</td>
+                            <td class="input-td"></td>
+                            <td class="t-title">주소</td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">이메일</td>
+                            <td class="input-td"></td>
+                            <td class="t-title">휴대폰</td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">종목</td>
+                            <td class="input-td"></td>
+                            <td class="t-title">체육단체</td>
+                            <td class="input-td"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="com-h3 add">봉사활동 계획
+                <div class="right-area"><p class="t-red">※검색한 체육요원 대상의 승인된 봉사활동계획 목록입니다.</p></div>
+            </div>
+            <div class="com-grid">
+                <table class="table-grid">
+                    <caption></caption>
+                    <colgroup>
+                        <col style="width:50px">
+                        <col style="width:7%">
+                        <col style="width:11%">
+                        <col style="width:11%">
+                        <col style="width:11%">
+                        <col style="width:13%">
+                        <col style="width:13%">
+                        <col style="width:13%">
+                        <col style="width:10%">
+                        <col style="width:auto">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>번호</th>
+                            <th>구분</th>
+                            <th>활동분야</th>
+                            <th>대상기관</th>
+                            <th>담당자</th>
+                            <th>활동시작일자</th>
+                            <th>활동종료일자</th>
+                            <th>신청일</th>
+                            <th>처리상태</th>
+                            <th>선택</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>000</td>
+                            <td>국내</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>0000-00-00</td>
+                            <td>0000-00-00</td>
+                            <td>0000-00-00</td>
+                            <td>승인완료</td>
+                            <td>O</td>
+                        </tr>
+                        <tr>
+                            <td>000</td>
+                            <td>국외</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>0000-00-00</td>
+                            <td>0000-00-00</td>
+                            <td>0000-00-00</td>
+                            <td>승인완료</td>
+                            <td>O</td>
+                        </tr>
+                        <tr>
+                            <td colspan="10" class="center">승인된 봉사활동 계획이 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="com-h3 add">봉사활동 실적
+                <div class="right-area"><p class="required">필수입력</p><p class="t-red">※위 봉사활동계획을 선택하고 아래 실적을 등록하세요.</p></div>
+            </div>
+            <div class="com-table">
+                <table class="table-board">
+                    <caption></caption>
+                    <colgroup>
+                        <col style="width:160px;">
+                        <col style="width:auto;">
+                        <col style="width:150px;">
+                        <col style="width:auto;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th colspan="4" class="add-btn">봉사활동1
+                                <div class="right-area">
+                                    <button class="btn line rmvcrr">실적삭제</button>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="t-title">대상기관</td>
+                            <td class="input-td"></td>
+                            <td class="t-title">봉사일자<span class="t-red"> *</span></td>
+                            <td class="input-td"><input id="datepicker" type="text" class="datepick"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">출발지 구분<span class="t-red"> *</span></td>
+                            <td>
+                                <ul class="com-radio-list">
+                                    <li>
+                                        <input id="radio01" type="radio" value="" name="radio01">
+                                        <label for="radio01">주소지</label>
+                                    </li>
+                                    <li>
+                                        <input id="radio02" type="radio" value="" name="radio01">
+                                        <label for="radio02">근무지</label>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td class="t-title">봉사장소<span class="t-red"> *</span></td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">출발지 주소<span class="t-red"> *</span></td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title">봉사장소 주소<span class="t-red"> *</span></td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">기관 담당자<span class="t-red"> *</span></td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title">연락처<span class="t-red"> *</span></td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">활동내용<span class="t-red"> *</span></td>
+                            <td colspan="3" class="input-td"><textarea rows="5"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">준비시간<span class="t-red"> *</span></td>
+                            <td class="input-td">
+                                <select class="tab-sel" title="준비시간">
+                                    <option>전체</option>
+                                </select>
+                            </td>
+                            <td class="t-title">활동시간<span class="t-red"> *</span></td>
+                            <td class="input-td">
+                                <select class="tab-sel" title="활동시간">
+                                    <option>전체</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">활동이후 행선지<span class="t-red"> *</span></td>
+                            <td>
+                                <ul class="com-radio-list">
+                                    <li>
+                                        <input id="radio11" type="radio" value="" name="radio11">
+                                        <label for="radio11">주소지</label>
+                                    </li>
+                                    <li>
+                                        <input id="radio12" type="radio" value="" name="radio11">
+                                        <label for="radio12">근무지</label>
+                                    </li>
+                                    <li>
+                                        <input id="radio13" type="radio" value="" name="radio11">
+                                        <label for="radio13">다음 봉사활동지</label>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td class="t-title"></td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2" class="t-title">이동거리<span class="t-red"> *</span></td>
+                            <td colspan="3">
+                                봉사활동 전 : <input type="text" class="xs"> Km (출발지 → 봉사활동지)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                봉사활동 후 : <input type="text" class="xs"> Km (봉사활동지 → 이후 행선지)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">첨부파일</td>
+                            <td colspan="3" class="input-td">
+                                <table class="table-board">
+                                    <caption></caption>
+                                    <colgroup>
+                                        <col style="width:200px;">
+                                        <col style="width:auto;">
+                                        <col style="width:130px;">
+                                        <col style="width:150px;">
+                                    </colgroup>
+                                    <tbody>
+                                        <tr>
+                                            <td class="t-title">제출서류명<span class="t-red"> *</span></td>
+                                            <td class="input-td"><span class="file-name">파일명.pdf<button class="file-del">삭제</button></span></td>
+                                            <td class="input-td center">
+                                                <input id="fileUp01" class="file-table" type="file" />
+                                                <label for="fileUp01" class="btn dark rmvcrr">파일선택</label>
+                                            </td>
+                                            <td class="input-td center"><button class="btn dark reclass">서식 다운로드</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="t-title">제출서류명<span class="t-red"> *</span></td>
+                                            <td class="input-td"><span class="file-name">파일명.pdf<button class="file-del">삭제</button></span></td>
+                                            <td class="input-td center">
+                                                <input id="fileUp02" class="file-table" type="file" />
+                                                <label for="fileUp02" class="btn dark rmvcrr">파일선택</label>
+                                            </td>
+                                            <td class="input-td center"><button class="btn dark reclass">서식 다운로드</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="t-title">기타</td>
+                                            <td class="input-td"><span class="file-name">파일명.pdf<button class="file-del">삭제</button></span></td>
+                                            <td class="input-td center">
+                                                <input id="fileUp03" class="file-table" type="file" />
+                                                <label for="fileUp03" class="btn dark rmvcrr">파일선택</label>
+                                            </td>
+                                            <td class="input-td center"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <span class="t-red">※ 제출서류 안내문구</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="com-table">
+                <table class="table-board">
+                    <caption></caption>
+                    <colgroup>
+                        <col style="width:160px;">
+                        <col style="width:auto;">
+                        <col style="width:150px;">
+                        <col style="width:auto;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th colspan="4" class="add-btn">
+                                <div class="right-area">
+                                    <button class="btn line rmvcrr">실적추가</button>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+            <div class="com-btn-group put">
+                <div class="float-r">
+                    <button class="btn grey rmvcrr" type="button">초기화</button>
+                    <button class="btn navy rmvcrr" type="button">임시저장</button>
+                    <button class="btn red rmvcrr" type="button">신청</button>
+                    <button class="btn navy rmvcrr" type="button">삭제</button>
+                    <button class="btn grey rmvcrr" type="button">닫기</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+<!-- //팝업영역 -->
+
+<!-- Bottom -->
+<!--#include virtual="/contents/_personnel/include/bottom.html" -->

@@ -1,0 +1,9 @@
+<style>
+.loading-group {width:100%; height:100%; background:rgba(0,0,0,0.5); position:fixed; left:0; top:0; z-index:10000;}
+.loading-bar {width:183px; height:45px; background:url(loading_gray.png) center no-repeat; position:absolute; right:50%; bottom:50%; transform:translate(50%,50%);}
+.loading-bar:after {content:""; display:block; width:183px; height:25px; background:url(loading_color.png) left bottom no-repeat; position:absolute; left:0; bottom:0; animation: loadingAction 2s linear infinite;}
+@keyframes loadingAction { 0% {height:0;} 70% {height:45px;} 100% {height:45px;} }
+</style>
+<div class="loading-group">
+	<div class="loading-bar"></div>
+</div>

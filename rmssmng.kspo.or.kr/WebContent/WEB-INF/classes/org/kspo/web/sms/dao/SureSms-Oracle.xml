@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.sms.dao.SureSmsDAO">
+	
+	<!-- sms 전송 -->
+	<insert id="insertSms"  parameterType="KSPOMap">
+		<selectKey keyProperty="seqno" resultType="String" order="BEFORE">
+			SELECT SUREDATA_SEQNO.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO SUREDATA /* insertSms */
+			(
+			  SEQNO              /*메세지 고유키값*/
+			 ,INTIME             /*최초 레코드 입력 시간*/
+			 ,USERCODE           /*유저코드*/
+			 ,REQNAME            /*발송자명*/
+			 ,REQPHONE           /*회신번호*/
+			 ,CALLNAME           /*수신자명*/
+			 ,COUNTRY            /*국가코드*/
+			 ,CALLPHONE          /*수신번호*/
+			 ,SUBJECT            /*메세지제목*/
+			 ,MSG                /*메세지내용*/
+			 ,REQTIME            /*전송요청설정시간*/
+			 ,SENTTIME           /*실제전송요청처리시간*/
+			 ,RECVTIME           /*전송결과수신시간*/
+			 ,RESULT             /*처리상태*/
+			 ,ERRCODE            /*처리결과코드*/
+			 ,KIND               /*메세지종류*/
+			 ,FKCONTENT          /*첨부파일 키값*/
+			 ,BATCHFLAG          /*베치값*/
+			 ,SEND_TYPE          /*문자구분*/
+			 ,DEPTCODE           /*멀티계정 컬럼*/
+			 ,BIZTYPE            /*비즈메시지종류*/
+			 ,YELLOWID_KEY       /*슈어엠에서 발급해준 키*/
+			 ,RETRY              /*재시도 횟수*/
+			 ,RESEND             /*문자 재처리 여부 Y : 알림톡으로 보내려고 했던 내용 그대로 문자로 재처리, R : 문자로 재처리할 시 RETEXT 필 드에 입력한 대체메시지로 문자 보냄, N : 문자로 재처리하지 않음*/
+			 ,BUTTON_NAME        /*버튼 삽입 시 버튼 이름*/
+			 ,BUTTON_URL         /*버튼 삽입 시 버튼 을 눌렀을 때 나타 나는 주소(URL)*/
+			 ,TEMPLATECODE       /*알림톡 템플릿 코드*/
+			 ,RETEXT             /*문자로 보낼 때 활용할 대체메시지*/
+			 ,RESENTFLAG         /*전송된 메시지의 최종 재처리 여부*/
+			 ,SENTMEDIA          /*최종 전송 경로 T : 알림톡/친구톡, S : SMS, M : MMS*/
+			 ,MEDIATYPE          /*전송된 통신사코드*/
+			)
+			VALUES
+			(
+			  #{seqno, jdbcType=VARCHAR}
+			 ,TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')      /*최초 레코드 입력 시간*/
+			 ,#{usercode, jdbcType=VARCHAR}
+			 ,#{reqname, jdbcType=VARCHAR}
+			 ,#{reqphone, jdbcType=VARCHAR}
+			 ,#{callname, jdbcType=VARCHAR}
+			 ,#{country, jdbcType=VARCHAR}
+			 ,#{callphone, jdbcType=VARCHAR}
+			 ,#{subject, jdbcType=VARCHAR}
+			 ,#{msg, jdbcType=VARCHAR}
+			 ,'00000000000000'                          /*전송요청설정시간 기본값*/
+			 ,#{senttime, jdbcType=VARCHAR}
+			 ,#{recvtime, jdbcType=VARCHAR}
+			 ,0                                         /*처리상태*/
+			 ,#{errcode, jdbcType=VARCHAR}
+			 ,'T'                                       /*메세지종류*/
+			 ,#{fkcontent, jdbcType=VARCHAR}
+			 ,0                                         /*베치값*/
+			 ,'11'                                      /*문자구분*/
+			 ,#{deptcode, jdbcType=VARCHAR}
+			 ,'at'                                      /*비즈메시지종류*/
+			 ,#{yellowidKey, jdbcType=VARCHAR}                           /*슈어엠에서 발급해준 키*/
+			 ,0                                         /*재시도 횟수*/
+			 ,'Y'                                       /*문자 재처리 여부 Y : 알림톡으로 보내려고 했던 내용 그대로 문자로 재처리, R : 문자로 재처리할 시 RETEXT 필 드에 입력한 대체메시지로 문자 보냄, N : 문자로 재처리하지 않음*/
+			 ,#{buttonName, jdbcType=VARCHAR}
+			 ,#{buttonUrl, jdbcType=VARCHAR}
+			 ,#{templatecode, jdbcType=VARCHAR}
+			 ,#{msg, jdbcType=VARCHAR}                  /*문자로 보낼 때 활용할 대체메시지*/
+			 ,#{resentflag, jdbcType=VARCHAR}
+			 ,#{sentmedia, jdbcType=VARCHAR}
+			 ,#{mediatype, jdbcType=VARCHAR}
+			)
+	</insert>
+	
+</mapper>

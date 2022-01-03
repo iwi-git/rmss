@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+    	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+    	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+	<!-- rmss -->
+	<bean id="rmss-txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="rmss-dataSource"/>
+	</bean>
+	<tx:advice id="rmss-txAdvice" transaction-manager="rmss-txManager">
+		<tx:attributes>
+			<tx:method name="tx*" rollback-for="Exception"/>
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut id="rmss-requiredTx" expression="execution(* org.kspo..*Service.*(..))"/>
+		<aop:advisor advice-ref="rmss-txAdvice" pointcut-ref="rmss-requiredTx" />
+	</aop:config>
+		
+	<tx:annotation-driven />
+	
+</beans>

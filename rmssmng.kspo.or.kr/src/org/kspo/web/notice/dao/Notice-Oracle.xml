@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.notice.dao.NoticeDAO">
+
+	<!-- 게시판 목록 조회 -->
+	<select id="selectNoticeList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Notice.selectNoticeList*/
+		SELECT	B.*
+				, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM	(
+				SELECT	A.*
+						, ROWNUM AS RNUM
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+				FROM	(
+							SELECT	A10.BRD_SN
+									, A10.BRD_NM
+									, A10.BRD_TYPE
+									, A10.REGR_ID
+									, TO_CHAR(A10.REG_DTM, 'YYYY-MM-DD') REGR_DT
+									, A20.SUBJECT
+									, A20.READ_NUM
+									, A20.BRD_DTL_SN
+									, A20.REGR_NM
+									, A20.CONTENTS
+									, A20.NTCE_SETUP_YN
+									, A20.MAIN_EXPSR_YN
+							FROM	TRMB_BOARD_M A10, TRMB_BOARD_D A20
+							WHERE   1=1	
+							AND		A10.BRD_SN = A20.BRD_SN
+							AND 	A20.DEL_YN = 'N'
+							AND		A10.BRD_SN = '1'
+							<if test='keyKind != null and keyKind != ""'>
+								<choose>
+									<when test='keyKind == "ALL"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		(A20.SUBJECT LIKE '%' || #{keyword} || '%'
+											OR		A20.CONTENTS LIKE '%' || #{keyword} || '%'
+											OR		A20.REGR_NM LIKE '%' || #{keyword} || '%')
+										</if>
+									</when>
+									<when test='keyKind == "SUBJECT"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A20.SUBJECT LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+									<when test='keyKind == "CONTENTS"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A20.CONTENTS LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+									<when test='keyKind == "REGR_NM"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A20.REGR_NM LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+								</choose>
+							</if>
+						ORDER BY CASE WHEN NVL(A20.NTCE_SETUP_YN,'N') = 'Y' THEN 0 END, A20.BRD_DTL_SN DESC
+						)A
+				)B
+		WHERE	B.N_PAGE_NO = NVL(#{currentPageNo},1)
+	
+	</select>
+	
+	<!-- 게시판 상세 조회 -->
+	<select id="selectNoticeDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Notice.selectNoticeDetail*/
+		SELECT	A10.BRD_SN
+				, A20.BRD_DTL_SN
+				, A20.SUBJECT
+				, DBMS_LOB.SUBSTR(A20.CONTENTS) CONTENTS
+				, A20.REGR_ID
+				, TO_CHAR(A20.REG_DTM, 'YYYY-MM-DD') REGR_DT
+				, A20.READ_NUM
+				, A20.NTCE_SETUP_YN
+				, A20.MAIN_EXPSR_YN
+				, A20.REGR_NM
+				, A20.SMS_YN
+		FROM
+				TRMB_BOARD_M A10, TRMB_BOARD_D A20
+		WHERE 1 = 1 
+		AND 	A10.BRD_SN = A20.BRD_SN
+		AND 	A20.BRD_DTL_SN = #{BRD_DTL_SN}
+	</select>
+	
+	<!-- 게시판 게시글 조회수 count+1 -->
+	<update id="updateNoticeReadNumJs" parameterType="KSPOMap">
+		UPDATE 	TRMB_BOARD_D
+		SET		READ_NUM = NVL(READ_NUM, 0) + 1
+		WHERE	BRD_DTL_SN = #{BRD_DTL_SN}
+	</update>
+	
+	<!-- 게시글 상세 내용 등록 -->
+	<insert id="insertNoticeDJs" parameterType="KSPOMap" >
+		<selectKey resultType="String" keyProperty="BRD_DTL_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMB_BOARD_D') FROM DUAL
+		</selectKey>
+		INSERT INTO TRMB_BOARD_D (
+		    BRD_DTL_SN
+		    , SUBJECT
+		    , CONTENTS
+		    , REGR_ID
+		    , REG_DTM
+		    , BRD_SN
+		    , NTCE_SETUP_YN
+		    , MAIN_EXPSR_YN
+		    , READ_NUM
+		    , DEL_YN
+		    , REGR_NM
+		    , SMS_YN
+		) VALUES (
+			#{BRD_DTL_SN}
+		    , #{SUBJECT, jdbcType=VARCHAR}
+		    , #{CONTENTS, jdbcType=VARCHAR}
+		    , #{EMP_NO, jdbcType=VARCHAR}
+		    , SYSDATE
+		    , '1'
+		    , #{NTCE_SETUP_YN, jdbcType=VARCHAR}
+		    , #{MAIN_EXPSR_YN, jdbcType=VARCHAR}
+		    , '0'
+		    , 'N'
+		    , #{REGR_NM, jdbcType=VARCHAR}
+		    , #{SMS_YN, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<!-- 게시판 게시글 상세 수정 -->
+	<update id="updateNoticeDJs" parameterType="KSPOMap">
+		UPDATE 	TRMB_BOARD_D
+		SET		SUBJECT = #{SUBJECT}
+				, CONTENTS = #{CONTENTS}
+				, NTCE_SETUP_YN = #{NTCE_SETUP_YN}
+				, MAIN_EXPSR_YN = #{MAIN_EXPSR_YN}
+				, SMS_YN = #{SMS_YN}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	BRD_SN = #{BRD_SN}
+		AND		BRD_DTL_SN = #{BRD_DTL_SN}
+	</update>
+	
+	<!-- 게시글 상세 내용 삭제 -->
+	<update id="deleteNoticeDJs" parameterType="KSPOMap">
+		UPDATE 	TRMB_BOARD_D
+		SET		DEL_YN = 'Y'
+		WHERE	BRD_DTL_SN = #{BRD_DTL_SN}
+	</update>
+	
+	<!-- 게시판 게시글 첨부파일 등록 -->	
+	<insert id="insertNoticeFileJs" parameterType="KSPOMap">
+		/*org.kspo.web.Notice.insertNoticeFileJs*/
+		INSERT INTO TRMB_BOARD_FILE_F(
+		    BRD_ATCH_FILE_SN
+			, BRD_DTL_SN
+			, ATCH_FILE_PATH
+			, ATCH_FILE_ORG_NM
+			, ATCH_FILE_NM
+			, ATCH_FILE_DV
+			, ATCH_FILE_ORD
+			, REG_DTM
+			, REGR_ID
+			, DEL_YN
+		)VALUES(
+			TO_CHAR(SYSDATE,'YYYYMMDD')||LPAD(SEQ_TRMB_BOARD_FILE_F.NEXTVAL,7,'0')
+			, #{BRD_DTL_SN, jdbcType=VARCHAR}
+			, #{FILE_PATH, jdbcType=VARCHAR}
+			, #{FILE_ORGIN_NM, jdbcType=VARCHAR}
+			, #{FILE_NM, jdbcType=VARCHAR}
+			, #{FILE_GB_CD, jdbcType=VARCHAR}
+			, '1'<!-- #{fileOrdNum} -->
+			, SYSDATE
+			, #{EMP_NO}
+			, 'N'
+		)
+	</insert>
+	
+	<!-- 게시판 게시글 첨부파일 조회-->
+	<select id="selectNoticeFileList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Notice.selectNoticeFileList*/
+		SELECT	BRD_ATCH_FILE_SN
+				, BRD_DTL_SN
+				, ATCH_FILE_PATH
+				, ATCH_FILE_NM
+				, ATCH_FILE_DV
+				, ATCH_FILE_ORD
+				, REG_DTM
+				, REGR_ID
+				, DEL_YN
+				, ATCH_FILE_ORG_NM
+		FROM	TRMB_BOARD_FILE_F
+		WHERE	BRD_DTL_SN = #{BRD_DTL_SN}
+		<if test='BRD_ATCH_FILE_SN != null and BRD_ATCH_FILE_SN != ""'>
+			AND		BRD_ATCH_FILE_SN = #{BRD_ATCH_FILE_SN}
+		</if>
+		AND 	DEL_YN = 'N'
+	</select>
+	
+	<!-- 게시판 게시글 파일삭제 -->
+	<update id="deleteNoticeFileJs" parameterType="KSPOMap">
+		/*org.kspo.web.Notice.deleteNoticeFileJs*/
+		UPDATE	TRMB_BOARD_FILE_F
+		SET		DEL_YN = 'Y'
+		WHERE	BRD_DTL_SN = #{BRD_DTL_SN}
+		<if test='BRD_ATCH_FILE_SN != null and BRD_ATCH_FILE_SN != ""'>
+			AND		BRD_ATCH_FILE_SN = #{BRD_ATCH_FILE_SN}
+		</if>
+	</update>
+	
+	<!-- 상단 게시판 긴급공지 조회 -->
+	<select id="selectTopNoticeList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Notice.selectTopNoticeList*/
+		SELECT	A10.BRD_SN
+				, A20.BRD_DTL_SN
+				, A20.SUBJECT
+				, A20.MAIN_EXPSR_YN
+		FROM	TRMB_BOARD_M A10
+				, TRMB_BOARD_D A20
+		WHERE	A10.BRD_SN = A20.BRD_SN
+		AND		A20.MAIN_EXPSR_YN = 'Y'
+		AND		A20.DEL_YN = 'N'
+		AND		A10.BRD_SN = '1'
+		AND     A20.REG_DTM >= (SYSDATE-90)
+		ORDER BY CASE WHEN A20.UPDT_DTM IS NOT NULL
+		              THEN A20.UPDT_DTM
+		              ELSE A20.REG_DTM
+		         END DESC
+	</select>
+</mapper>

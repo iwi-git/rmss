@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.system.code.dao.CodeDAO">
+	
+	<!-- 공통코드 관리 대분류 조회 -->
+	<select id="selectCodeMstList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCodeMstList*/
+		SELECT	A.*
+				, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM
+				(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM	(
+						SELECT	ROWNUM AS RNUM
+								, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+								, A100.CMMN_SN
+								, A100.CMMN_NM
+								, A100.USE_YN
+								, TO_CHAR(A100.REG_DTM,'YYYY-MM-DD') AS REG_DT
+								, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A100.REGR_ID) AS REGR_ID
+								, TO_CHAR(A100.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+								, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A100.UPDR_ID) AS UPDR_ID
+						FROM	TRMZ_CMMN_CODE_M A100
+						<where>
+							<if test='CMMN_SN != null and CMMN_SN != ""'>
+								AND		A100.CMMN_SN = #{CMMN_SN}
+							</if>
+							<if test='CMMN_NM != null and CMMN_NM != ""'>
+								AND		A100.CMMN_NM LIKE '%'||#{CMMN_NM}||'%'	
+							</if>
+						</where>
+						ORDER BY A100.CMMN_SN
+						) A10
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+		ORDER BY A.CMMN_SN
+	</select>
+	
+	<!-- 공통코드 관리 소분류 조회 -->
+	<select id="selectCodeDtlList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCodeDtlList*/
+		SELECT	A10.CMMN_SN
+				, A10.MJRSN
+				, A10.ALT_CODE
+				, A10.CNTNT_FST
+				, A10.CNTNT_SND
+				, A10.REFR_FST
+				, A10.REFR_SND
+				, A10.USE_YN
+				, A10.ORD
+				, TO_CHAR(A10.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.REGR_ID) AS REGR_ID
+				, TO_CHAR(A10.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A10.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_CMMN_CODE_D A10
+		WHERE	A10.CMMN_SN = #{CMMN_SN}
+		<if test='MJRSN != null and MJRSN != ""'>
+			AND		A10.MJRSN = #{MJRSN}
+		</if>
+		ORDER BY TO_NUMBER(A10.ORD)
+	</select>
+	
+	<!-- 공통코드 관리 대분류 조회(단건) -->
+	<select id="selectCodeMst" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCodeMst*/
+		SELECT	A.CMMN_SN
+				, A.CMMN_NM
+				, A.USE_YN
+				, TO_CHAR(A.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.REGR_ID) AS REGR_ID
+				, TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_CMMN_CODE_M A
+		WHERE	A.CMMN_SN = #{CMMN_SN}
+	</select>
+
+	<!-- 공통코드 관리 소분류 조회(단건) -->
+	<select id="selectCodeDtl" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCodeDtl*/
+		SELECT	A.CMMN_SN
+				, A.MJRSN
+				, A.ALT_CODE
+				, A.CNTNT_FST
+				, A.CNTNT_SND
+				, A.REFR_FST
+				, A.REFR_SND
+				, A.USE_YN
+				, A.ORD
+				, TO_CHAR(A.REG_DTM,'YYYY-MM-DD') AS REG_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.REGR_ID) AS REGR_ID
+				, TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT
+				, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.UPDR_ID) AS UPDR_ID
+		FROM	TRMZ_CMMN_CODE_D A
+		WHERE	A.CMMN_SN = #{CMMN_SN}
+		AND		A.MJR_SN = #{MJRSN}
+	</select>
+		
+	<!-- 공통코드 관리 대분류 수정(단건) -->
+	<update id="updateCodeMst" parameterType="KSPOMap">
+		/*org.kspo.web.Code.updateCodeMst*/
+		UPDATE	TRMZ_CMMN_CODE_M
+		SET		CMMN_NM = #{CMMN_NM}
+				, USE_YN = #{USE_YN,jdbcType=VARCHAR}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	CMMN_SN = #{CMMN_SN}
+	</update>
+	
+	<!-- 공통코드 관리 소분류 수정(단건) -->
+	<update id="updateCodeDtl" parameterType="KSPOMap">
+		/*org.kspo.web.Code.updateCodeDtl*/
+		UPDATE	TRMZ_CMMN_CODE_D
+		SET		ALT_CODE = #{ALT_CODE,jdbcType=VARCHAR}
+				, CNTNT_FST = #{CNTNT_FST,jdbcType=VARCHAR}
+				, CNTNT_SND = #{CNTNT_SND,jdbcType=VARCHAR}
+				, REFR_FST = #{REFR_FST,jdbcType=VARCHAR}
+				, REFR_SND = #{REFR_SND,jdbcType=VARCHAR}
+				, USE_YN = #{USE_YN,jdbcType=VARCHAR}
+				, ORD = #{ORD,jdbcType=VARCHAR}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	CMMN_SN = #{CMMN_SN}
+		AND		MJRSN = #{MJRSN}
+	</update>
+	
+	<!-- 공통코드 관리 대분류 등록(단건) -->
+	<insert id="insertCodeMst" parameterType="KSPOMap">
+		/*org.kspo.web.Code.insertCodeDtl*/
+		INSERT INTO TRMZ_CMMN_CODE_M(
+			CMMN_SN
+			, CMMN_NM
+			, USE_YN
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			(SELECT F_GET_SEQ('TRMZ_CMMN_CODE_M') FROM DUAL)
+			, #{CMMN_NM}
+			, 'Y'
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 공통코드 관리 소분류 등록(단건) -->
+	<insert id="insertCodeDtl" parameterType="KSPOMap">
+		/*org.kspo.web.Code.insertCodeDtl*/
+		INSERT INTO TRMZ_CMMN_CODE_D(
+			CMMN_SN
+			, MJRSN
+			, ALT_CODE
+			, CNTNT_FST
+			, CNTNT_SND
+			, REFR_FST
+			, REFR_SND
+			, USE_YN
+			, ORD
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			#{CMMN_SN}
+			, (SELECT F_GET_SEQ('TRMZ_CMMN_CODE_D') FROM DUAL)
+			, #{ALT_CODE,jdbcType=VARCHAR}
+			, #{CNTNT_FST,jdbcType=VARCHAR}
+			, #{CNTNT_SND,jdbcType=VARCHAR}
+			, #{REFR_FST,jdbcType=VARCHAR}
+			, #{REFR_SND,jdbcType=VARCHAR}
+			, #{USE_YN,jdbcType=VARCHAR}
+			, #{ORD,jdbcType=VARCHAR}
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 공통코드 관리 대분류 등록(다건) -->
+	<delete id="deleteCodeMstList" parameterType="KSPOMap">
+		/*org.kspo.web.Code.deleteCodeMstList*/
+		DELETE
+		FROM	TRMZ_CMMN_CODE_M
+		WHERE	CMMN_SN IN
+		<foreach collection="mstChk" item="CMMN_SN" open="(" close=")" separator=",">
+			#{CMMN_SN}
+		</foreach>
+	</delete>
+	
+	<!-- 공통코드 관리 소분류 등록(다건) -->
+	<delete id="deleteCodeDtlMstList" parameterType="KSPOMap">
+		/*org.kspo.web.Code.deleteCodeDtlList*/
+		DELETE
+		FROM	TRMZ_CMMN_CODE_D
+		WHERE	CMMN_SN IN
+		<foreach collection="mstChk" item="CMMN_SN" open="(" close=")" separator=",">
+			#{CMMN_SN}
+		</foreach>
+	</delete>
+	
+	<!-- 공통코드 관리 소분류 등록(단건) -->
+	<delete id="deleteCodeDtlList" parameterType="KSPOMap">
+		/*org.kspo.web.Code.deleteCodeDtlList*/
+		DELETE
+		FROM	TRMZ_CMMN_CODE_D
+		WHERE	MJRSN IN
+		<foreach collection="dtlChk" item="MJRSN" open="(" close=")" separator=",">
+			#{MJRSN}
+		</foreach>
+	</delete>
+	
+	<!-- 기본 공통코드 조회 -->
+	<select id="selectCmmnDtlList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCmmnDtlList*/
+		SELECT	ALT_CODE
+				, CNTNT_FST
+				, CNTNT_SND
+				, REFR_FST
+				, REFR_SND
+		FROM	TRMZ_CMMN_CODE_D
+		WHERE	CMMN_SN = #{CMMN_SN}
+		<if test='orderType != null and orderType != ""'>
+			<choose>
+				<when test='orderType == "O"'>
+					<choose>
+						<when test='order == "asc"'>
+							ORDER BY ORD ASC
+						</when>
+						<otherwise>
+							ORDER BY ORD DESC
+						</otherwise>
+					</choose>
+				</when>
+				<when test='orderType == "CF"'>
+					<choose>
+						<when test='order == "asc"'>
+							ORDER BY CNTNT_FST ASC
+						</when>
+						<otherwise>
+							ORDER BY CNTNT_FST DESC
+						</otherwise>
+					</choose>
+				</when>
+				<when test='orderType == "CS"'>
+					<choose>
+						<when test='order == "asc"'>
+							ORDER BY CNTNT_SND ASC
+						</when>
+						<otherwise>
+							ORDER BY CNTNT_SND DESC
+						</otherwise>
+					</choose>
+				</when>
+				<when test='orderType == "RF"'>
+					<choose>
+						<when test='order == "asc"'>
+							ORDER BY REFR_FST ASC
+						</when>
+						<otherwise>
+							ORDER BY REFR_FST DESC
+						</otherwise>
+					</choose>
+				</when>
+				<when test='orderType == "RS"'>
+					<choose>
+						<when test='order == "asc"'>
+							ORDER BY REFR_SND ASC
+						</when>
+						<otherwise>
+							ORDER BY REFR_SND DESC
+						</otherwise>
+					</choose>
+				</when>
+			</choose>
+		</if>
+	</select>
+	
+	<!-- 등록된 코드인지 확인 -->
+	<select id="selectCodeDtlCheck" parameterType="KSPOMap" resultType="int">
+		/*org.kspo.web.Code.selectCodeDtlCheck*/
+		SELECT  COUNT(*)
+		FROM    TRMZ_CMMN_CODE_D
+		WHERE   CMMN_SN = #{CMMN_SN}
+		AND     CNTNT_FST = #{CNTNT_FST}
+	</select>
+	
+	<!-- 2019 ~ 올해 연도 조회 -->
+	<select id="selectYearList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectYearList*/
+		SELECT	TO_CHAR(SYSDATE,'YYYY')-LEVEL+1 AS YEAR
+		,TO_CHAR(SYSDATE,'YYYYMM')-LEVEL+1 AS YEARMM
+        FROM DUAL 
+        CONNECT BY LEVEL <![CDATA[<=]]> ((TO_CHAR(SYSDATE,'YYYY')+1)-2019)
+	</select>
+	
+	<!-- 월 조회 -->
+	<select id="selectMonthList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectMonthList*/
+		SELECT	LPAD(LEVEL,2,'0') MONTH
+		FROM	DUAL
+        CONNECT BY LEVEL <![CDATA[<=]]> 12
+	</select>
+	
+	<!-- -3 ~ 올해 연도 +2 조회 -->
+	<select id="selectNextYearList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectNextYearList*/
+        SELECT	TO_CHAR(SYSDATE,'YYYY')-LEVEL+3 AS YEAR
+        FROM 	DUAL 
+        CONNECT BY LEVEL <![CDATA[<=]]> ((TO_CHAR(SYSDATE,'YYYY')+2)-TO_CHAR(add_months(sysdate,-36),'YYYY'))
+	</select>
+
+	<!-- 올해년월 조회 -->
+	<select id="selectBasicYM" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectBasicYM*/
+		SELECT	TO_CHAR(SYSDATE,'YYYY') AS YEAR
+				, TO_CHAR(SYSDATE,'MM') AS MONTH
+				, TO_CHAR(TRUNC(ADD_MONTHS(SYSDATE,-1)+1) - TO_CHAR(SYSDATE,'DD'),'MM') PRE_MONTH
+        FROM 	DUAL 
+	</select>
+	
+	<!-- 오늘날짜, -7일전 날짜 조회 -->
+	<select id="selectTodaySevenday" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectTodaySevenday*/
+		SELECT	TO_CHAR(SYSDATE,'YYYYMMDD') END_YMD
+				, TO_CHAR(SYSDATE-7,'YYYYMMDD') STD_YMD
+				, TO_CHAR(ADD_MONTHS(SYSDATE,-1),'YYYYMMDD') THR_YMD
+		FROM	DUAL
+	</select>
+	
+	<!-- 인코딩 -->
+	<select	id="selectGetEnc" parameterType="String" resultType="String">
+		/*org.kspo.web.Code.selectGetEnc*/
+		SELECT  CRYPTO.ENC('normal',#{str})
+		FROM    DUAL
+	</select>
+	
+	<!-- 디코딩 -->
+	<select	id="selectGetDec" parameterType="String" resultType="String">
+		/*org.kspo.web.Code.selectGetDec*/
+		SELECT  CRYPTO.DEC('normal',#{str})
+		FROM    DUAL
+	</select>
+	
+	<!-- 체육단체 조회 -->
+	<select id="selectMemOrgInfoList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectMemOrgInfoList*/
+		SELECT	A.MEMORG_SN,
+		        A.MEMORG_NM, 
+				A.MEMORG_ADDRESS, 
+				TO_CHAR(A.REG_DTM,'YYYY-MM-DD') AS REG_DT,
+				(SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.REGR_ID) AS REGR_ID,
+				TO_CHAR(A.UPDT_DTM,'YYYY-MM-DD') AS UPDT_DT,
+				(SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A.UPDR_ID) AS UPDR_ID,
+				A.USE_YN, 
+				A.MEMORG_REPR, 
+				A.MEMORG_TEL_NO, 
+				A.ORG_MNGR_NM, 
+				A.ORG_MNGR_TEL_NO, 
+				A.ORG_MNGR_EMAIL, 
+				A.ORG_MNGR_CP_NO,		
+				A.GAME_CD
+		FROM	TRMZ_MEMORG_MNG_I A
+		<where>
+			<if test='GRP_SN != null and GRP_SN != ""'>
+				<choose>
+					<when test='GRP_SN == "2"'>
+						A.MEMORG_SN = (SELECT MAX(MEMORG_SN) FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})
+					</when>
+					<otherwise>
+						
+					</otherwise>
+				</choose>
+			</if>
+		</where>
+		
+	</select>
+	
+	<!-- 종목명 공통코드 조회 -->
+	<select id="selectCmmnAltCodeList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Code.selectCmmnAltCodeList*/
+		SELECT	ALT_CODE
+				, CNTNT_FST
+				, CNTNT_SND
+				, REFR_FST
+				, REFR_SND
+		FROM	TRMZ_CMMN_CODE_D
+		WHERE	CMMN_SN = #{CMMN_SN}
+		<if test='ALT_CODE != null and ALT_CODE != ""'>
+			AND	ALT_CODE = #{ALT_CODE}
+		</if>
+		ORDER BY ORD ASC
+	</select>
+	
+</mapper>

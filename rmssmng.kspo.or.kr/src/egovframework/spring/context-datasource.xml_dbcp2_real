@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/jdbc  http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd">
+	
+	<!-- rmss -->
+    <bean id="rmss-dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />    
+		<property name="url" value="jdbc:oracle:thin:@(DESCRIPTION=(failover=YES)(load_balance=NO)(Address_list=(ADDRESS=(PROTOCOL=TCP)(HOST= 140.101.1.202)(PORT=1521)) (ADDRESS=(PROTOCOL=TCP)(HOST=140.101.1.203)(PORT=1521))) (CONNECT_DATA=(SERVICE_NAME=GEMINI)))" />
+		<property name="username" value="RMSS" />
+		<property name="password" value="RMSS2021!" />
+		<property name="initialSize" value="3" />
+		<property name="maxTotal" value="5" />
+		<property name="maxIdle" value="3" />
+		<property name="minIdle" value="1" />
+		<property name="maxWaitMillis" value="10000" />
+		<property name="validationQuery" value="select 1 from dual" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testWhileIdle" value="true" />
+		<property name="timeBetweenEvictionRunsMillis" value="150000" />
+		<property name="numTestsPerEvictionRun" value="4" />
+		<property name="minEvictableIdleTimeMillis" value="-1" />
+		<property name="defaultAutoCommit" value="true" />
+		<property name="defaultReadOnly" value="true" />
+		<property name="poolPreparedStatements" value="true" />
+		<property name="maxOpenPreparedStatements" value="50" />										
+    </bean>
+    
+    <!-- suredata -->
+    <bean id="surem-dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />    
+		<property name="url" value="jdbc:oracle:thin:@140.101.1.202:1521/GEMINI" />
+		<property name="username" value="surem" />
+		<property name="password" value="!surem2018!" />
+		<property name="initialSize" value="3" />
+		<property name="maxTotal" value="5" />
+		<property name="maxIdle" value="3" />
+		<property name="minIdle" value="1" />
+		<property name="maxWaitMillis" value="10000" />
+		<property name="validationQuery" value="select 1 from dual" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testWhileIdle" value="true" />
+		<property name="timeBetweenEvictionRunsMillis" value="150000" />
+		<property name="numTestsPerEvictionRun" value="4" />
+		<property name="minEvictableIdleTimeMillis" value="-1" />
+		<property name="defaultAutoCommit" value="true" />
+		<property name="defaultReadOnly" value="true" />
+		<property name="poolPreparedStatements" value="true" />
+		<property name="maxOpenPreparedStatements" value="50" />										
+    </bean>
+
+</beans>

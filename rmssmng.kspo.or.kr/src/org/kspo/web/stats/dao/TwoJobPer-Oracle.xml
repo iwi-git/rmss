@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.stats.dao.TwoJobPerDAO">
+	<!-- 겸직허가신청현황 목록 조회 -->
+	<select id="selectTwoJobPerList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.stats.dao.TwoJobPerDAO.selectTwoJobPerList*/
+		SELECT	A.*
+		FROM
+				(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+						,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+						,NVL(#{pageSize},10) AS PAGE_SIZE
+				FROM
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY TCI.CONC_SN DESC) AS RNUM
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						,TCI.CONC_SN
+						,TCI.MLTR_ID
+						,TCI.CONC_STS
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_STS AND A.CMMN_SN = '202111180000436') CONC_STS_NM
+                        ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                        ,TAI.TEAM_NM
+                        ,TAI.APPL_NM
+                        ,TAI.BRTH_DT
+                        ,TAI.GAME_CD
+                        ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+                        ,TO_CHAR(TO_DATE(TCI.CONC_START_DT),'YYYY-MM-DD') ||' - '||TO_CHAR(TO_DATE(TCI.CONC_END_DT),'YYYY-MM-DD') AS CONC_DT
+						,TO_CHAR(TCI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+						,TCI.REGR_ID
+						,(SELECT MAX(MNGR_NM) FROM TRMZ_MNGR_M WHERE MNGR_ID = TCI.REGR_ID) AS REGR_NM
+						,TCI.CONC_OFC
+                        ,TCI.APPL_DV
+                        ,NVL(TCI.INCM_YN,'N') AS INCM_YN 
+                        ,DBMS_LOB.SUBSTR(TCI.CONC_REASON) CONC_REASON 
+                        ,DBMS_LOB.SUBSTR(TCI.DSPTH_REASON) DSPTH_REASON 
+						,TCI.CONC_PRVONSH_CD
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_PRVONSH_CD AND A.CMMN_SN = '202111180000435') CONC_PRVONSH_NM
+				FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMC_CONC_I TCI
+				WHERE	1=1
+                AND TAI.APPL_SN = TAAI.APPL_SN
+                AND TAAI.MLTR_ID = TCI.MLTR_ID
+                <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+				AND TCI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='GRP_SN != null and GRP_SN != ""'>
+					<choose>
+						<when test='GRP_SN == "2"'>
+							AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+						</when>
+						<otherwise>
+						
+						</otherwise>
+					</choose>
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					<choose>
+						<when test='keykind == ""'>
+								AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test='keykind == "USER_NM"'>
+							<if test='keyword != null and keyword != ""'>
+								AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+							</if>
+						</when>
+					</choose>
+				</if>
+				) A10
+				ORDER BY A10.CONC_SN DESC
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<!-- 겸직허가신청현황 목록 엑셀 조회 -->
+	<select id="selectTwoJobPerExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	ROW_NUMBER () OVER (ORDER BY TCI.CONC_SN DESC) AS RNUM
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						,TCI.CONC_SN
+						,TCI.MLTR_ID
+						,TCI.CONC_STS
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_STS AND A.CMMN_SN = '202111180000436') CONC_STS_NM
+                        ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                        ,TAI.TEAM_NM
+                        ,TAI.APPL_NM
+                        ,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+						,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+                        ,TAI.BRTH_DT
+                        ,TAI.GAME_CD
+                        ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+                        ,TO_CHAR(TO_DATE(TCI.CONC_START_DT),'YYYY-MM-DD') ||' - '||TO_CHAR(TO_DATE(TCI.CONC_END_DT),'YYYY-MM-DD') AS CONC_DT
+						,TO_CHAR(TCI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+						,TCI.REGR_ID
+						,(SELECT MAX(MNGR_NM) FROM TRMZ_MNGR_M WHERE MNGR_ID = TCI.REGR_ID) AS REGR_NM
+						,(SELECT F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',MNGR_NM) FROM TRMZ_MNGR_M WHERE MNGR_ID = TCI.REGR_ID) AS B_REGR_NM
+						,TCI.CONC_OFC
+                        ,TCI.APPL_DV
+                        ,NVL(TCI.INCM_YN,'N') AS INCM_YN 
+                        ,DBMS_LOB.SUBSTR(TCI.CONC_REASON) CONC_REASON 
+                        ,DBMS_LOB.SUBSTR(TCI.DSPTH_REASON) DSPTH_REASON 
+						,TCI.CONC_PRVONSH_CD
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_PRVONSH_CD AND A.CMMN_SN = '202111180000435') CONC_PRVONSH_NM
+				FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMC_CONC_I TCI
+				WHERE	1=1
+                AND TAI.APPL_SN = TAAI.APPL_SN
+                AND TAAI.MLTR_ID = TCI.MLTR_ID
+                <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+				AND TCI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TAI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='GRP_SN != null and GRP_SN != ""'>
+					<choose>
+						<when test='GRP_SN == "2"'>
+							AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+						</when>
+						<otherwise>
+						
+						</otherwise>
+					</choose>
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					<choose>
+						<when test='keykind == ""'>
+								AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test='keykind == "USER_NM"'>
+							<if test='keyword != null and keyword != ""'>
+								AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+							</if>
+						</when>
+					</choose>
+				</if>
+	</select>
+</mapper>

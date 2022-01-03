@@ -1,0 +1,277 @@
+<!-- Header -->
+<!--#include virtual="/contents/_personnel/include/header.html" -->
+
+<!-- Top + Snv -->
+<!--#include virtual="/contents/_personnel/include/top.html" -->
+
+<!-- 타이틀 -->
+<div class="com-title-group">
+    <h2>봉사활동처 관리</h2>
+</div>
+<!-- //타이틀 -->
+
+
+<!-- 검색영역 -->
+<div class="com-table">
+    <table class="table-board">
+        <caption></caption>
+        <colgroup>
+            <col style="width:150px;">
+            <col style="width:400px;">
+            <col style="width:150px;">
+            <col style="width:auto;">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="t-title">등록일자</td>
+                <td>
+                    <ul class="com-radio-list">
+                        <li>
+                            <input id="datepicker" type="text" class="datepick smal"> ~ <input id="datepicker" type="text" class="datepick smal">
+                        </li>
+                    </ul>
+                </td>
+                <td class="t-title">사용유무</td>
+                <td>
+                    <ul class="com-radio-list">
+                        <li>
+                            <input id="radio01" type="radio" value="" name="radio01">
+                            <label for="radio01">전체</label>
+                        </li>
+                        <li>
+                            <input id="radio02" type="radio" value="" name="radio01">
+                            <label for="radio02">사용</label>
+                        </li>
+                        <li>
+                            <input id="radio03" type="radio" value="" name="radio01">
+                            <label for="radio03">정지</label>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td class="t-title">키워드</td>
+                <td colspan="3">
+                    <ul class="com-radio-list">
+                        <li>
+                            <select id="" class="smal">
+                                <option value="선택">선택</option>
+                            </select>
+                            <input type="text" class="smal" placeholder="">
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="com-btn-group center">
+    <button class="btn red write" type="button">검색</button>
+</div>
+<!-- //검색영역 -->
+
+<div class="com-result">
+    <div class="float-l">
+        <span class="total-num">조회결과 <b>000</b>건</span>
+    </div>
+    <div class="float-r">
+        <button class="btn icon-info type01" type="button">엑셀데이터 저장하기</button>
+    </div>
+</div>
+
+<div class="com-grid">
+    <table class="table-grid">
+        <caption></caption>
+        <colgroup>
+            <col style="width:50px">
+            <col style="width:auto">
+            <col style="width:10%">
+            <col style="width:13%">
+            <col style="width:20%">
+            <col style="width:10%">
+            <col style="width:10%">
+            <col style="width:10%">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>번호</th>
+                <th>봉사활동처명</th>
+                <th>담당자</th>
+                <th>연락처</th>
+                <th>이메일</th>
+                <th>등록자</th>
+                <th>등록일자</th>
+                <th>사용유무</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>000</td>
+                <td></td>
+                <td></td>
+                <td>000-0000-0000</td>
+                <td>OOOOOO@OOOOOOO.com</td>
+                <td></td>
+                <td>0000-00-00</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="8" class="center">등록된 게시물이 없습니다.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="com-btn-group put">
+    <div class="float-r">
+        <button class="btn navy rmvcrr" type="button">신규</button>
+    </div>
+</div>
+
+<div class="com-paging">
+    <div class="paging-first"><a href="#">처음으로</a></div>
+    <div class="paging-prev"><a href="#">이전</a></div>
+    <ul class="paging-num">
+        <li class="on"><a href="#">1</a></li>
+        <li><a href="#">2</a></li>
+        <li><a href="#">3</a></li>
+        <li><a href="#">4</a></li>
+        <li><a href="#">5</a></li>
+        <li><a href="#">6</a></li>
+        <li><a href="#">7</a></li>
+        <li><a href="#">8</a></li>
+        <li><a href="#">9</a></li>
+        <li><a href="#">10</a></li>
+    </ul>
+    <div class="paging-next"><a href="#">다음</a></div>
+    <div class="paging-last"><a href="#">끝으로</a></div>
+</div>
+
+<!-- Footer -->
+<!--#include virtual="/contents/_personnel/include/footer.html" -->
+
+<!-- 팝업영역 -->
+<div class="cpt-popup reg03 active"> <!-- class:active 팝업 on/off -->
+    <div class="dim"></div>
+    <div class="popup">
+        <div class="pop-head">
+            봉사활동처 관리
+            <button class="pop-close">
+                <img src="/common/images/common/icon_close.png" alt="닫기 버튼 이미지">
+            </button>
+        </div>
+        <div class="pop-body">
+            <div class="com-h3 add">봉사활동처 정보</div>
+
+            <div class="com-table">
+                <table class="table-board">
+                    <caption></caption>
+                    <colgroup>
+                        <col style="width:130px;">
+                        <col style="width:auto;">
+                        <col style="width:130px;">
+                        <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td class="t-title">단체명</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title"></td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">대표자</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title">전화</td>
+                            <td class="input-td type03">
+                                <select id="" class="">
+                                    <option value="선택">선택</option>
+                                </select>
+                                <span>-</span>
+                                <input type="text" title="휴대전화 중간자리 입력">
+                                <span>-</span>
+                                <input type="text" title="휴대전화 뒷자리 입력">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">주소</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title"></td>
+                            <td class="input-td"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">담당자명</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title">전화</td>
+                            <td class="input-td type03">
+                                <select id="" class="">
+                                    <option value="선택">선택</option>
+                                </select>
+                                <span>-</span>
+                                <input type="text" title="휴대전화 중간자리 입력">
+                                <span>-</span>
+                                <input type="text" title="휴대전화 뒷자리 입력">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">이메일</td>
+                            <td class="input-td">
+                                <div class="email-box">
+                                    <input type="text">
+                                    <span class="text">~</span>
+                                    <input type="text">
+                                </div>
+                            </td>
+                            <td class="t-title">휴대폰</td>
+                            <td class="input-td type03">
+                                <select id="" class="">
+                                    <option value="선택">선택</option>
+                                </select>
+                                <span>-</span>
+                                <input type="text" title="휴대전화 중간자리 입력">
+                                <span>-</span>
+                                <input type="text" title="휴대전화 뒷자리 입력">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">주요 활동분야</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                            <td class="t-title">주요 봉사대상</td>
+                            <td class="input-td"><input type="text" class="ip-title"></td>
+                        </tr>
+                        <tr>
+                            <td class="t-title">사용유무</td>
+                            <td>
+                                <ul class="com-radio-list">
+                                    <li>
+                                        <input id="radio11" type="radio" value="" name="radio11">
+                                        <label for="radio11">사용</label>
+                                    </li>
+                                    <li>
+                                        <input id="radio12" type="radio" value="" name="radio11">
+                                        <label for="radio12">정지</label>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td class="t-title">등록일자</td>
+                            <td class="input-td"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="com-btn-group put">
+                <div class="float-r">
+                    <button class="btn red rmvcrr" type="button">저장</button>
+                    <button class="btn grey rmvcrr" type="button">닫기</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+<!-- //팝업영역 -->
+
+<!-- Bottom -->
+<!--#include virtual="/contents/_personnel/include/bottom.html" -->

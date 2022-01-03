@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.etc.dao.TwoJobDAO">
+	
+	<!-- 겸직허가신청 목록 조회 -->
+	<select id="selectTwoJobList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	A.*
+		FROM
+				(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+						,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+						,NVL(#{pageSize},10) AS PAGE_SIZE
+				FROM
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY TCI.CONC_SN DESC) AS RNUM
+						, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						,TCI.CONC_SN
+						,TCI.MLTR_ID
+						,TCI.CONC_STS
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_STS AND A.CMMN_SN = '202111180000436') CONC_STS_NM
+                        ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                        ,TAI.PROC_STS 
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+                        ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAAI.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+                        ,TAI.APPL_NM
+                        ,TAI.BRTH_DT
+                        ,TAI.GAME_CD
+                        ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+						,TO_CHAR(TCI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+						,TCI.REGR_ID
+						,TCI.CONC_OFC
+                        ,TCI.APPL_DV
+                        ,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.APPL_DV AND A.CMMN_SN = '202111180000437') APPL_DV_NM
+						,TO_CHAR(TO_DATE(TCI.CONC_START_DT),'YYYY-MM-DD') CONC_START_DT
+						,TO_CHAR(TO_DATE(TCI.CONC_END_DT),'YYYY-MM-DD') CONC_END_DT
+						,TCI.CONC_PRVONSH_CD
+						,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_PRVONSH_CD AND A.CMMN_SN = '202111180000435') CONC_PRVONSH_NM
+						,TCI.ORG_CONC_SN
+				FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMC_CONC_I TCI
+				WHERE	1=1
+                AND TAI.APPL_SN = TAAI.APPL_SN
+                AND TAAI.MLTR_ID = TCI.MLTR_ID
+                AND TAI.PROC_STS in ('AG','MM')
+                <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+				AND TCI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TCI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='srchGameCd != null and srchGameCd != ""'>
+				AND		TAI.GAME_CD = #{srchGameCd}
+				</if>
+				<if test='srchProcSts != null and srchProcSts != ""'>
+					AND TAI.PROC_STS = #{srchProcSts}		
+				</if>
+				<if test='srchConcSts != null and srchConcSts != ""'>
+					AND	TCI.CONC_STS = #{srchConcSts}
+				</if>
+				<if test='GRP_SN != null and GRP_SN != ""'>
+					<choose>
+						<when test='GRP_SN == "2"'>
+							AND TAI.MEMORG_SN = (SELECT MAX(MEMORG_SN) FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})
+						</when>
+						<otherwise>
+							AND TCI.CONC_STS != 'TP'
+							<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+								AND TAI.MEMORG_SN = #{srchMemOrgSn}
+							</if>
+						</otherwise>
+					</choose>
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					<choose>
+						<when test='keykind == ""'>
+								AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test='keykind == "NAME"'>
+							<if test='keyword != null and keyword != ""'>
+								AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+							</if>
+						</when>
+					</choose>
+				</if>
+				) A10
+				ORDER BY A10.CONC_SN DESC
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<!-- 겸직허가신청 목록 엑셀 조회 -->
+	<select id="selectTwoJobExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	ROW_NUMBER () OVER (ORDER BY TCI.CONC_SN DESC) AS RNUM
+				,TCI.CONC_SN
+				,TCI.MLTR_ID
+				,TCI.CONC_STS
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_STS AND A.CMMN_SN = '202111180000436') CONC_STS_NM
+				,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+				,TAI.PROC_STS 
+				,CASE	WHEN TAI.PROC_STS = 'AG' THEN '복무'
+                    	WHEN TAI.PROC_STS = 'MM' THEN '만료'
+                    	END PROC_STS_NM
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAAI.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+				,TAI.APPL_NM
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+				,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+				,TAI.GAME_CD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TO_CHAR(TCI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+				,TCI.REGR_ID
+				,TCI.CONC_OFC
+				,TCI.APPL_DV
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.APPL_DV AND A.CMMN_SN = '202111180000437') APPL_DV_NM
+				,TO_CHAR(TO_DATE(TCI.CONC_START_DT),'YYYY-MM-DD') CONC_START_DT
+				,TO_CHAR(TO_DATE(TCI.CONC_END_DT),'YYYY-MM-DD') CONC_END_DT
+				,TCI.CONC_PRVONSH_CD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TCI.CONC_PRVONSH_CD AND A.CMMN_SN = '202111180000435') CONC_PRVONSH_NM
+		FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMC_CONC_I TCI
+		WHERE	1=1
+	             AND TAI.APPL_SN = TAAI.APPL_SN
+	             AND TAAI.MLTR_ID = TCI.MLTR_ID
+	             <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+		AND TCI.REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TCI.REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+		AND		TAI.GAME_CD = #{srchGameCd}
+		</if>
+		<if test='srchProcSts != null and srchProcSts != ""'>
+			AND TAI.PROC_STS = #{srchProcSts}		
+		</if>
+		<if test='srchConcSts != null and srchConcSts != ""'>
+			AND	TCI.CONC_STS = #{srchConcSts}
+		</if>
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND TAI.MEMORG_SN = (SELECT MAX(MEMORG_SN) FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})
+				</when>
+				<otherwise>
+					<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+						AND TAI.MEMORG_SN = #{srchMemOrgSn}
+					</if>
+				</otherwise>
+			</choose>
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keykind == ""'>
+						AND	(TAI.APPL_NM LIKE '%' || #{keyword} || '%')
+				</when>
+				<when test='keykind == "NAME"'>
+					<if test='keyword != null and keyword != ""'>
+						AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+					</if>
+				</when>
+			</choose>
+		</if>
+	</select>
+	
+	<insert id="insertTwoJob" parameterType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.insertTwoJob*/
+		<selectKey resultType="String" keyProperty="CONC_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMC_CONC_I') FROM DUAL
+		</selectKey>
+		INSERT INTO TRMC_CONC_I (
+			CONC_SN
+			, ORG_CONC_SN
+			, APPL_DV
+			, MLTR_ID
+			, CONC_STS
+			, CONC_REASON
+			, CONC_PRVONSH_CD
+			, CONC_OFC
+			, CONC_OFC_TEL_NO
+			, CONC_START_DT
+			, CONC_END_DT
+			, CONC_WORK_TIME
+			, CONC_WORK
+			, INCM_YN
+			, WORK_TYPE
+			, ATCH_FILE_ID
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			#{CONC_SN}
+			, CASE WHEN #{APPL_DV} = 'CH' THEN #{ORG_CONC_SN}
+			       ELSE #{CONC_SN} END
+			, #{APPL_DV}
+			, #{MLTR_ID}
+			, #{CONC_STS}
+			, #{CONC_REASON}
+			, #{CONC_PRVONSH_CD}
+			, #{CONC_OFC}
+			, #{CONC_OFC_TEL_NO}
+			, #{CONC_START_DT}
+			, #{CONC_END_DT}
+			, #{CONC_WORK_TIME}
+			, #{CONC_WORK}
+			, #{INCM_YN}
+			, #{WORK_TYPE}
+			, #{ATCH_FILE_ID}
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<update id="updateTwoJob" parameterType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.updateTwoJob*/
+		UPDATE TRMC_CONC_I
+			SET APPL_DV = #{APPL_DV}
+			, MLTR_ID = #{MLTR_ID}
+			, CONC_STS = #{CONC_STS}
+			, CONC_REASON = #{CONC_REASON}
+			, CONC_PRVONSH_CD = #{CONC_PRVONSH_CD}
+			, CONC_OFC = #{CONC_OFC}
+			, CONC_OFC_TEL_NO = #{CONC_OFC_TEL_NO}
+			, CONC_START_DT = #{CONC_START_DT}
+			, CONC_END_DT = #{CONC_END_DT}
+			, CONC_WORK_TIME = #{CONC_WORK_TIME}
+			, CONC_WORK = #{CONC_WORK}
+			, INCM_YN = #{INCM_YN}
+			, WORK_TYPE = #{WORK_TYPE}
+			, ATCH_FILE_ID = #{ATCH_FILE_ID}
+			, UPDT_DTM = SYSDATE 
+			, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND CONC_SN = #{CONC_SN}
+	</update>
+	
+	<select id="selectTwoJob" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.selectTwoJob*/
+		SELECT
+			TCI.CONC_SN
+			, TCI.APPL_DV
+			, TCI.MLTR_ID
+			, TCI.CONC_STS
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TCI.CONC_STS AND D10.CMMN_SN = '202111180000436') AS CONC_STS_NM
+			, DBMS_LOB.SUBSTR(TCI.CONC_REASON) AS CONC_REASON
+			, TCI.CONC_PRVONSH_CD
+			, TCI.CONC_OFC
+			, TCI.CONC_OFC_TEL_NO AS CONC_OFC_TEL_NO
+			, TCI.CONC_START_DT
+			, TCI.CONC_END_DT
+			, TCI.CONC_WORK_TIME
+			, TCI.CONC_WORK
+			, TCI.INCM_YN
+			, TCI.WORK_TYPE
+			, TO_CHAR(NVL(TCI.UPDT_DTM, TCI.REG_DTM), 'yyyy-MM-dd') AS LASTEST_UPDATE_DTM
+			, NVL(TCI.UPDR_ID, TCI.REGR_ID) AS LASTEST_UPDATE_ID
+			, TAI.APPL_NM
+			, TAI.APPL_SN
+			, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS BRTH_DT
+			, TAI.EMAIL AS EMAIL
+			, TAI.CP_NO AS CP_NO
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+			, TMMI.MEMORG_NM 
+			, TO_CHAR(TCI.RECEIPT_DTM, 'yyyy-MM-dd') AS RECEIPT_DTM
+			, DBMS_LOB.SUBSTR(TCI.RECEIPT_REASON) AS RECEIPT_REASON
+			, TO_CHAR(TCI.DSPTH_DTM, 'yyyy-MM-dd') AS DSPTH_DTM
+			, DBMS_LOB.SUBSTR(TCI.DSPTH_REASON) AS DSPTH_REASON
+			, TCI.ATCH_FILE_ID
+			, TCI.ATCH_FILE_ID2
+		FROM 
+			TRMC_CONC_I TCI
+		INNER JOIN TRMM_APPL_ACPT_I TAAI
+			ON TAAI.MLTR_ID = TCI.MLTR_ID
+		INNER JOIN TRMM_APPL_I TAI
+			ON TAI.APPL_SN = TAAI.APPL_SN
+		INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+			ON TMMI.MEMORG_SN = TAI.MEMORG_SN 
+		WHERE 1=1
+			AND TCI.CONC_SN = #{CONC_SN}
+	</select>
+	
+	<update id="twoJobKdConfirm" parameterType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.twoJobKdConfirm*/
+		UPDATE TRMC_CONC_I
+			SET CONC_STS = #{CONC_STS}
+				, RECEIPT_DTM = SYSDATE
+				, RECEIPT_REASON = #{RECEIPT_REASON}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND CONC_SN = #{CONC_SN}
+	</update>
+	
+	<update id="twoJobMcConfirm" parameterType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.twoJobMcConfirm*/
+		UPDATE TRMC_CONC_I
+			SET CONC_STS = #{CONC_STS}
+				, DSPTH_DTM = SYSDATE
+				, DSPTH_REASON = #{DSPTH_REASON}
+				<if test='ATCH_FILE_ID2 != "" and ATCH_FILE_ID2 != null'>
+				, ATCH_FILE_ID2 = #{ATCH_FILE_ID2}
+				</if>
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND CONC_SN = #{CONC_SN}
+	</update>
+	
+	<delete id="deleteTwoJob" parameterType="KSPOMap">
+		/*org.kspo.web.etc.dao.TwoJobDAO.deleteTwoJob*/
+		DELETE
+			TRMC_CONC_I
+		WHERE 1=1
+			AND CONC_SN = #{CONC_SN}
+	</delete>
+	
+</mapper>

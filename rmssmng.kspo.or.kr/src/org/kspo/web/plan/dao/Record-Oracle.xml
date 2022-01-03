@@ -1,0 +1,1242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.plan.dao.RecordDAO">
+	
+	<select id="RecordMngSelect" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.RecordMngSelect*/
+		SELECT 
+			A1000.TOTAL_RECORD_COUNT
+			, A1000.RNUM
+			, A1000.N_PAGE_NO
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+			, A1000.VLUN_RECD_SN
+			, A1000.APPL_NM
+			, TO_CHAR(TO_DATE(A1000.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			, A1000.GAME_CD
+			, A1000.GAME_CD_NM
+			, A1000.VLUN_PLC_DV_TYPE
+			, A1000.VLUN_PLC_DV_TXT
+			, A1000.ACT_FIELD
+			, A1000.VLUN_PLC_NM
+			, TO_CHAR(A1000.REG_DTM, 'YYYYMMDD') AS REG_DTM
+			, A1000.RECD_STS
+			, A1000.RECD_STS_NM
+			, A1000.VLUN_RECD_CNT
+			, A1000.MEMORG_SN
+			, A1000.MEMORG_NM
+			, NVL(A1000.TOT_AFT_ACT_TIME_HR, A1000.TOT_PC_ACT_TIME_HR) + NVL(A1000.TOT_AFT_WP_MV_TIME, A1000.TOT_PC_WP_MV_TIME) AS FINAL_TIME_HR
+			, NVL(A1000.TOT_AFT_ACT_TIME_MN, A1000.TOT_PC_ACT_TIME_MN) AS FINAL_TIME_MN
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY A10.VLUN_RECD_SN DESC) AS RNUM
+							, A10.*
+							, (SELECT RECD_STS_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D RECD_STS_CODE WHERE RECD_STS_CODE.ALT_CODE = A10.RECD_STS AND RECD_STS_CODE.CMMN_SN = '202111050000347') RECD_STS_NM
+						FROM (
+							SELECT 
+								TVRM.VLUN_RECD_SN 
+								, TAI.APPL_NM 
+								, TAI.BRTH_DT
+								, TAI.GAME_CD
+								, (SELECT GAME_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CODE WHERE GAME_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+								, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN 'dom'
+										   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+								, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN '국내'
+															   ELSE '국외' END AS VLUN_PLC_DV_TXT
+								, (SELECT ACT_FIELD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D ACT_FIELD_CODE WHERE ACT_FIELD_CODE.ALT_CODE = TVPI.ACT_FIELD AND ACT_FIELD_CODE.CMMN_SN = '202111050000342') ACT_FIELD
+								, PLACE.VLUN_PLC_NM 
+								, TVPI.REG_DTM
+								, CASE WHEN NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR) IS NULL
+											AND NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_HR) IS NULL
+											AND NVL(TVRM.TOT_AFT_WP_MV_TIME, TVRM.TOT_PC_WP_MV_TIME) IS NULL
+											AND (TVRM.RECD_STS = 'KY' OR TVRM.RECD_STS = 'MY')
+									THEN 'TN' ELSE  TVRM.RECD_STS END RECD_STS
+								, (SELECT COUNT(*) FROM TRMV_VLUN_RECD_D RECD_D WHERE RECD_D.VLUN_RECD_SN = TVRM.VLUN_RECD_SN) AS VLUN_RECD_CNT
+								, TVRM.TOT_PC_ACT_TIME_HR
+								, TVRM.TOT_PC_ACT_TIME_MN
+								, TVRM.TOT_AFT_ACT_TIME_HR
+								, TVRM.TOT_AFT_ACT_TIME_MN
+								, TVRM.TOT_PC_WP_MV_TIME
+								, TVRM.TOT_AFT_WP_MV_TIME
+								, TMMI.MEMORG_SN
+								, TMMI.MEMORG_NM 
+							FROM
+								TRMV_VLUN_RECD_M TVRM
+							INNER JOIN TRMV_VLUN_PLAN_I TVPI
+								ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+							INNER JOIN TRMM_APPL_ACPT_I TAAI
+								ON TAAI.MLTR_ID = TVPI.MLTR_ID
+							INNER JOIN TRMM_APPL_I TAI
+								ON TAI.APPL_SN = TAAI.APPL_SN
+							INNER JOIN TRMV_VLUN_PLACE_I PLACE
+								ON PLACE.VLUN_PLC_SN = TVPI.VLUN_PLC_SN 
+							INNER JOIN TRMZ_MEMORG_MNG_I TMMI
+								ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+							WHERE 1=1
+						<if test='srchRegDtmStart != null and srchRegDtmStart != "" and srchRegDtmEnd != null and srchRegDtmEnd != ""'>
+						AND TVPI.REG_DTM <![CDATA[>=]]> TO_DATE(#{srchRegDtmStart}||'000000','YYYYMMDDHH24MISS') AND TVPI.REG_DTM <![CDATA[<=]]> TO_DATE(#{srchRegDtmEnd}||'235959','YYYYMMDDHH24MISS')
+						</if>
+						) A10	
+						WHERE 1=1
+						<choose>
+							<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+								AND A10.RECD_STS != 'TP'
+							</when>
+							<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+								AND A10.MEMORG_SN = #{SESSION_MEMORG_SN}
+								AND A10.GAME_CD = #{SESSION_GAME_CD}
+								
+							</when>
+						</choose>
+						<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+						AND A10.MEMORG_SN = #{srchMemorgCd}
+						</if>
+						<if test='srchVlunPlcNm != null and srchVlunPlcNm != ""'>
+						AND UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{srchVlunPlcNm}) || '%'
+						</if>
+						<if test='srchGameCd != null and srchGameCd != ""'>
+						AND A10.GAME_CD = #{srchGameCd} 
+						</if>
+						<if test='srchRecdStsCd != null and srchRecdStsCd != ""'>
+						AND A10.RECD_STS = #{srchRecdStsCd}
+						</if>
+						<if test='srchVlunPlcDvType != null and srchVlunPlcDvType != ""'>
+						AND A10.VLUN_PLC_DV_TYPE = #{srchVlunPlcDvType}
+						</if>
+						<if test='keyword != null and keyword != ""'>
+							<choose>
+								<when test='keyKind == ""'>
+								AND (
+										UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+										OR UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+										OR A10.VLUN_RECD_SN LIKE '%' || UPPER(#{keyword}) || '%'
+									)
+								</when>
+								<when test='keyKind == "USER_NAME"'>
+								AND (
+										UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+									)
+							</when>
+							<when test='keyKind == "GAME_NAME"'>
+								AND (
+										A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+									)
+							</when>
+							</choose>
+						</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectPersonList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectPersonList*/
+		SELECT 
+			A1000.*
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY  TVPI.VLUN_PLAN_SN DESC) AS RNUM
+							, TVPI.VLUN_PLAN_SN
+							, TAAI.MLTR_ID
+							, TAAI.APPL_SN
+							, TAI.APPL_NM
+							, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS BRTH_DT
+							, TAI.GAME_CD
+							, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+						FROM
+							TRMV_VLUN_PLAN_I TVPI
+						INNER JOIN TRMM_APPL_ACPT_I TAAI 
+							ON TAAI.MLTR_ID = TVPI.MLTR_ID
+						INNER JOIN TRMM_APPL_I TAI
+							ON TAI.APPL_SN  = TAAI.APPL_SN 
+						WHERE 1=1
+							AND TVPI.PLAN_STS = 'KY'
+							AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+							AND TAI.GAME_CD = #{SESSION_GAME_CD}
+							<if test='pSrchKeyword != null and pSrchKeyword != ""'>
+								<choose>
+									<when test='pSrchKeyKind == ""'>
+									AND (
+											UPPER(TAI.APPL_NM) LIKE '%' || UPPER(#{pSrchKeyword}) || '%'
+											OR TAI.BRTH_DT LIKE '%' || #{pSrchKeyword} || '%'
+										)
+									</when>
+								</choose>
+							</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectRecordM" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectRecordM*/
+		SELECT 
+			TVRM.VLUN_RECD_SN
+			, TVRM.VLUN_PLAN_SN
+			, TVRM.RECD_STS 
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVRM.RECD_STS AND D10.CMMN_SN = '202111050000347') AS RECD_STS_TXT
+			, TO_CHAR(TVRM.REG_DTM, 'YYYYMMDD') AS REG_DTM
+			, TVRM.REGR_ID
+			, TO_CHAR(TVRM.RECEIPT_DTM, 'YYYY-MM-DD') AS RECEIPT_DTM
+			, TO_CHAR(TVRM.RECEIPT_REASON) AS RECEIPT_REASON
+			, TO_CHAR(TVRM.ADMS_RMK) AS ADMS_RMK
+			, TO_CHAR(NVL(TVRM.UPDT_DTM, TVRM.REG_DTM), 'YYYY-MM-DD') AS LAST_UPDATE_DT
+			, (SELECT MNGR_NM FROM TRMZ_MNGR_M TMM WHERE MNGR_ID = NVL(TVRM.UPDR_ID, TVRM.REGR_ID)) AS LAST_UPDATE_NM
+			, TO_CHAR(TVRM.DSPTH_DTM, 'YYYYMMDD') AS DSPTH_DTM
+			, TO_CHAR(TVRM.DSPTH_REASON) AS DSPTH_REASON
+			, TVRM.ATCH_FILE_ID
+			, (SELECT A.FILE_ORGIN_NM FROM TRMZ_FILE_F A WHERE A.FILE_SN = TVRM.ATCH_FILE_ID) ATCH_FILE_NM
+			, DBMS_LOB.SUBSTR(TVRM.TOT_AFT_ACT_REASON) AS TOT_AFT_ACT_REASON
+			, TAI.APPL_SN
+			, TAAI.MLTR_ID
+			, TAI.MEMORG_SN
+			, TMMI.MEMORG_NM
+			, CASE WHEN TVRM.TOT_PC_ACT_TIME_HR IS NULL 
+						AND TVRM.TOT_PC_ACT_TIME_MN IS NULL 
+						AND TVRM.TOT_PC_WP_MV_TIME IS NULL THEN 'N'
+				ELSE 'Y' END AS KD_ACCEPT_FLAG
+		FROM
+			TRMV_VLUN_RECD_M TVRM
+		INNER JOIN TRMV_VLUN_PLAN_I TVPI
+			ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+		INNER JOIN TRMM_APPL_ACPT_I TAAI 
+			ON TAAI.MLTR_ID = TVPI.MLTR_ID
+		INNER JOIN TRMM_APPL_I TAI
+			ON TAI.APPL_SN = TAAI.APPL_SN
+		INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+			ON TMMI.MEMORG_SN = TAI.MEMORG_SN 
+		WHERE 1=1
+			AND TVRM.VLUN_RECD_SN  = #{VLUN_RECD_SN}
+	</select>
+	
+	<select id="selectRecordDList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectRecordDList*/
+		SELECT
+			TVRD.VLUN_RECD_D_SN 
+			, TVRD.VLUN_RECD_SN 
+			, TVRD.ACT_PLACE
+			, TO_CHAR(TVRD.SRVC_CONTENTS) AS SRVC_CONTENTS
+			, TVRD.ACT_TIME_HR
+			, TVRD.ACT_TIME_MN 
+			, TO_CHAR(TVRD.REG_DTM, 'YYYY-MM-DD') AS REG_DTM
+			, TVRD.REGR_ID
+			, TVRD.ACT_DT
+			, TVRD.DEDUCTION_CD 
+			, TVRD.GIFT_YN 
+			, TVRD.ACT_DIST
+			, NVL(TVRD.PC_ACT_TIME_HR, TVRD.ACT_TIME_HR) AS PC_ACT_TIME_HR
+			, NVL(TVRD.PC_ACT_TIME_MN, TVRD.ACT_TIME_MN) AS PC_ACT_TIME_MN 
+			, NVL(TVRD.ADMS_ACT_DIST, TVRD.ACT_DIST) AS ADMS_ACT_DIST
+			, NVL(TVRD.PC_REC_WP_MV_TIME, CASE WHEN TVRD.ACT_DIST = 'D1' THEN 1
+											   WHEN TVRD.ACT_DIST = 'D2' THEN 2
+											   WHEN TVRD.ACT_DIST = 'D3' THEN 3
+											   WHEN TVRD.ACT_DIST = 'D4' THEN 4
+											   ELSE 0 END) AS PC_REC_WP_MV_TIME
+			, NVL(TVRD.AFT_ACT_TIME_HR, 0) AS AFT_ACT_TIME_HR
+			, TVRD.AFT_ACT_TIME_MN
+			, NVL(TVRD.AFT_ACT_DIST, 0) AS AFT_ACT_DIST
+			, NVL(TVRD.AFT_WP_MV_TIME, 0) AS AFT_WP_MV_TIME
+			, TVRD.ATCH_FILE_ID
+			, TVRD.ATCH_FILE_ID1
+		FROM
+			TRMV_VLUN_RECD_D TVRD
+		INNER JOIN TRMV_VLUN_RECD_M TVRM
+			ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN 
+		WHERE 1=1
+			AND TVRD.VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</select>
+
+	<insert id="insertRecordMaster" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.insertRecordMaster*/
+		<selectKey resultType="String" keyProperty="VLUN_RECD_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMV_VLUN_RECD_M') FROM DUAL
+		</selectKey>
+		INSERT INTO TRMV_VLUN_RECD_M (
+			VLUN_RECD_SN
+			, VLUN_PLAN_SN
+			, RECD_STS
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			#{VLUN_RECD_SN}
+			, #{VLUN_PLAN_SN}
+			, #{RECD_STS}
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<insert id="insertRecordDetail" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.insertRecordDetail*/
+		<selectKey resultType="String" keyProperty="VLUN_RECD_D_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMV_VLUN_RECD_D') FROM DUAL
+		</selectKey>
+		INSERT INTO TRMV_VLUN_RECD_D (
+			VLUN_RECD_D_SN
+			, VLUN_RECD_SN
+			, ACT_DT
+			, ACT_PLACE
+			, SRVC_CONTENTS
+			, DEDUCTION_CD
+			, ACT_TIME_HR
+			, ACT_TIME_MN
+			, GIFT_YN
+			, ACT_DIST
+			, ATCH_FILE_ID
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			#{VLUN_RECD_D_SN}
+			, #{VLUN_RECD_SN}
+			, #{ACT_DT}
+			, #{ACT_PLACE}
+			, #{SRVC_CONTENTS}
+			, #{DEDUCTION_CD}
+			, #{ACT_TIME_HR}
+			, #{ACT_TIME_MN}
+			, #{GIFT_YN}
+			, #{ACT_DIST, jdbcType=VARCHAR}
+			, #{ATCH_FILE_ID}
+			, SYSDATE
+			, #{EMP_NO}
+			)
+	</insert>
+	
+	<update id="updateRecordMaster" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateRecordMaster*/
+		UPDATE TRMV_VLUN_RECD_M
+			SET VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+			, RECD_STS = #{RECD_STS}
+			, UPDT_DTM = SYSDATE
+			, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</update>
+	
+	<update id="updateRecordDetail" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateRecordDetail*/
+		UPDATE TRMV_VLUN_RECD_D 
+			SET ACT_PLACE = #{ACT_PLACE}
+			, SRVC_CONTENTS = #{SRVC_CONTENTS}
+			, ACT_TIME_HR = #{ACT_TIME_HR}
+			, ACT_TIME_MN  = #{ACT_TIME_MN}
+			, ACT_DT = #{ACT_DT}
+			, DEDUCTION_CD = #{DEDUCTION_CD} 
+			, GIFT_YN  = #{GIFT_YN}
+			, ACT_DIST = #{ACT_DIST}
+			, ATCH_FILE_ID = #{ATCH_FILE_ID}
+			, UPDT_DTM = SYSDATE
+			, UPDR_ID = #{EMP_NO}
+		WHERE VLUN_RECD_D_SN = #{VLUN_RECD_D_SN}
+	</update>
+	
+	<delete id="deleteOneRecodDetail" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.deleteOneRecodDetail*/
+		DELETE
+			TRMV_VLUN_RECD_D
+		WHERE 1=1
+			AND VLUN_RECD_D_SN = #{VLUN_RECD_D_SN}
+	</delete>
+	
+	<delete id="deleteRecordM" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.deleteRecordM*/
+		DELETE
+			TRMV_VLUN_RECD_M
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</delete>
+	
+	<delete id="deleteRecordD" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.deleteRecordD*/
+		DELETE
+			TRMV_VLUN_RECD_D
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</delete>
+	
+	<update id="updateConfirmRecord" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateConfirmRecord*/
+		UPDATE TRMV_VLUN_RECD_M
+			SET RECD_STS = #{RECD_STS}
+				, RECEIPT_DTM = SYSDATE
+				, RECEIPT_REASON = #{RECEIPT_REASON}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</update>
+	
+	<update id="updateRecordDAccept" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateRecordDAccept*/
+		UPDATE TRMV_VLUN_RECD_D
+			SET PC_ACT_TIME_HR 	= #{PC_ACT_TIME_HR}
+				, PC_ACT_TIME_MN 	= #{PC_ACT_TIME_MN}
+				, ADMS_ACT_DIST 	= #{ADMS_ACT_DIST}
+				, PC_REC_WP_MV_TIME = #{PC_REC_WP_MV_TIME}
+				, UPDT_DTM 			= SYSDATE
+				, UPDR_ID 			= #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_D_SN = #{VLUN_RECD_D_SN}
+	</update> 
+	
+	<update id="updateRecordMAccept" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateRecordMAccept*/
+		UPDATE TRMV_VLUN_RECD_M
+			SET ADMS_RMK 	= #{ADMS_RMK}
+				, TOT_PC_ACT_TIME_HR  = (
+											SELECT
+												NVL(SUM(PC_ACT_TIME_HR),0) 
+											FROM
+												TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										) + (
+											SELECT
+											 	NVL(DECODE(TRUNC(NVL(SUM(PC_ACT_TIME_MN),0) / 60), 0, '', TRUNC(NVL(SUM(PC_ACT_TIME_MN),0)/60)), 0)
+											FROM TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+
+											)
+				, TOT_PC_ACT_TIME_MN = (
+										SELECT
+											LPAD(MOD(NVL(SUM(PC_ACT_TIME_MN),0), 60), 2, '0')
+										FROM TRMV_VLUN_RECD_D
+										WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										)
+				, TOT_PC_WP_MV_TIME = (
+											SELECT
+												NVL(SUM(PC_REC_WP_MV_TIME), 0)
+											FROM
+												TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										)
+				, UPDT_DTM 	= SYSDATE
+				, UPDR_ID 	= #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</update>
+	
+	<update id="updateMcConfirmRecord" parameterType="KSPOMap">
+		UPDATE TRMV_VLUN_RECD_M
+			SET RECD_STS = #{RECD_STS} 
+			, DSPTH_REASON = #{DSPTH_REASON}
+			, DSPTH_DTM = #{DSPTH_DTM}
+			<if test='ATCH_FILE_ID != null and ATCH_FILE_ID != ""'>
+			, ATCH_FILE_ID = #{ATCH_FILE_ID}
+			</if>
+			, UPDR_ID = #{EMP_NO}
+			, UPDT_DTM = SYSDATE
+		WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</update>
+	
+	<select id="selectRecordSelectList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectRecordSelectList*/
+		SELECT 
+			A1000.*
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY A10.MLTR_ID DESC) AS RNUM
+							, A10.MLTR_ID
+							, A10.ADDM_DT
+							, A10.APPL_NM
+							, TO_CHAR(TO_DATE(A10.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+							, A10.GAME_CD
+							, A10.GAME_NM
+							, TO_CHAR(TO_DATE(A10.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS EXPR_DT
+							, A10.MEMORG_SN 
+							, A10.MEMORG_NM
+							, A10.RECD_M_CNT
+							, A10.RECD_D_CNT
+							, A10.TOT_FINAL_ACT_TIME_FORMAT_MN
+							, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60), 0) AS TOT_FINAL_ACT_TIME_HR
+							, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_ACT_TIME_MN
+							, NVL(A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_WP_MV_TIME 
+							, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60) + A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR 
+							, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_TIME_MN
+							, NVL(TRUNC((A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60)) / 60), 0) AS FINAL_REMAIN_TIME_HR
+							, NVL(MOD(A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60) , 60), 0) AS FINAL_REMAIN_TIME_MN
+						FROM (
+								SELECT 
+									TAAI.MLTR_ID
+									, TAAI.ADDM_DT
+									, TAI.APPL_NM
+									, TAI.BRTH_DT
+									, TAI.GAME_CD
+									, (SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') AS GAME_NM
+									, TAI.EXPR_DT 
+									, TAI.MEMORG_SN 
+									, TMMI.MEMORG_NM
+									, TAI.VLUN_DUTY_HR
+									, (
+										SELECT
+											COUNT(*) AS RECD_M_CNT
+										FROM
+											TRMV_VLUN_RECD_M TVRM 
+										INNER JOIN TRMV_VLUN_PLAN_I TVPI
+											ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+										WHERE 1=1
+											AND NVL(TVRM.RECD_STS, '') = 'MY'
+											AND NVL(TVPI.PLAN_STS, '') = 'KY'
+											AND TVPI.MLTR_ID = TAAI.MLTR_ID 
+									) AS RECD_M_CNT
+									, (
+										SELECT 
+											COUNT(*) AS RECD_D_CNT	
+										FROM TRMV_VLUN_RECD_D TVRD 
+										INNER JOIN TRMV_VLUN_RECD_M TVRM 
+											ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN
+										INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+											ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+										WHERE 1=1
+											AND NVL(TVRM.RECD_STS, '') = 'MY'
+											AND NVL(TVPI.PLAN_STS, '') = 'KY'
+											AND TVPI.MLTR_ID = TAAI.MLTR_ID
+									) AS RECD_D_CNT
+									, (
+										SELECT
+											(SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR), 0)) * 60) + SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_MN), 0))
+										FROM
+											TRMV_VLUN_RECD_M TVRM 
+										INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+											ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+										WHERE 1=1
+											AND NVL(TVRM.RECD_STS, '') = 'MY'
+											AND NVL(TVPI.PLAN_STS, '') = 'KY'
+											AND TVPI.MLTR_ID = TAAI.MLTR_ID
+									) AS TOT_FINAL_ACT_TIME_FORMAT_MN
+									, (
+										SELECT
+											SUM(NVL(NVL(TVRM.TOT_AFT_WP_MV_TIME , TVRM.TOT_PC_WP_MV_TIME), 0))
+										FROM
+											TRMV_VLUN_RECD_M TVRM 
+										INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+											ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+										WHERE 1=1
+											AND NVL(TVRM.RECD_STS, '') = 'MY'
+											AND NVL(TVPI.PLAN_STS, '') = 'KY'
+											AND TVPI.MLTR_ID = TAAI.MLTR_ID
+									) AS TOT_FINAL_WP_MV_TIME
+								FROM
+									TRMM_APPL_ACPT_I TAAI
+								INNER JOIN TRMM_APPL_I TAI 
+									ON TAI.APPL_SN = TAAI.APPL_SN
+									AND NVL(TAI.APPL_STS, '') = 'MY'
+								INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+									ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+								WHERE 1=1
+						) A10
+					WHERE 1=1
+					<choose>
+						<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+						</when>
+						<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+							AND A10.MEMORG_SN = #{SESSION_MEMORG_SN}
+							AND A10.GAME_CD = #{SESSION_GAME_CD}
+						</when>
+					</choose>
+					<if test='srchAddmDtStart != null and srchAddmDtStart != "" and srchAddmDtEnd != null and srchAddmDtEnd != ""'>
+					AND A10.ADDM_DT BETWEEN #{srchAddmDtStart} AND #{srchAddmDtEnd}
+					</if>
+					<if test='srchExprDtStart != null and srchExprDtStart != "" and srchExprDtEnd != null and srchExprDtEnd != ""'>
+					AND A10.EXPR_DT BETWEEN #{srchExprDtStart} AND #{srchExprDtEnd}
+					</if>
+					<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+					AND A10.MEMORG_SN = #{srchMemorgCd}
+					</if>
+					<if test='srchGameCd != null and srchGameCd != ""'>
+					AND A10.GAME_CD = #{srchGameCd} 
+					</if>
+					<if test='keyword != null and keyword != ""'>
+						<choose>
+							<when test='keyKind == ""'>
+							AND (
+									UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+									OR A10.GAME_NM LIKE '%' || #{keyword} || '%'
+								)
+							</when>
+							<when test='keyKind == "USER_NAME"'>
+							AND (
+									UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+								)
+							</when>
+							<when test='keyKind == "GAME_NAME"'>
+							AND (
+									A10.GAME_NM LIKE '%' || #{keyword} || '%'
+								)
+							</when>
+						</choose>
+					</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<update id="updateRecordDAfterAccept" parameterType="KSPOMap">
+		UPDATE TRMV_VLUN_RECD_D
+			SET AFT_ACT_TIME_HR 	= #{AFT_ACT_TIME_HR}
+				, AFT_ACT_TIME_MN 	= #{AFT_ACT_TIME_MN}
+				, AFT_ACT_DIST 		= #{AFT_ACT_DIST}
+				, AFT_WP_MV_TIME 	= #{AFT_WP_MV_TIME}
+				, ATCH_FILE_ID1		= #{ATCH_FILE_ID1}
+				, UPDT_DTM 			= SYSDATE
+				, UPDR_ID 			= #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_D_SN = #{VLUN_RECD_D_SN}
+	</update>
+	
+	<update id="updateRecordMAfterAccept" parameterType="KSPOMap">
+		UPDATE TRMV_VLUN_RECD_M
+			SET TOT_AFT_ACT_REASON 	= #{TOT_AFT_ACT_REASON}
+				, TOT_AFT_ACT_TIME_HR  = (
+											SELECT
+												NVL(SUM(AFT_ACT_TIME_HR),0) 
+											FROM
+												TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										) + (
+											SELECT
+											 	NVL(DECODE(TRUNC(NVL(SUM(AFT_ACT_TIME_MN),0) / 60), 0, '', TRUNC(NVL(SUM(AFT_ACT_TIME_MN),0)/60)), 0)
+											FROM TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+
+											)
+				, TOT_AFT_ACT_TIME_MN = (
+											SELECT
+												LPAD(MOD(NVL(SUM(AFT_ACT_TIME_MN),0), 60), 2, '0')
+											FROM TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										)
+				, TOT_AFT_WP_MV_TIME = (
+											SELECT
+												NVL(SUM(AFT_WP_MV_TIME), 0)
+											FROM
+												TRMV_VLUN_RECD_D
+											WHERE VLUN_RECD_SN = #{VLUN_RECD_SN}
+										)
+				, TOT_AFT_ACT_ADMS_ID = #{EMP_NO}
+				, TOT_AFT_ACT_REG_DTM = SYSDATE
+				, UPDT_DTM 	= SYSDATE
+				, UPDR_ID 	= #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_RECD_SN = #{VLUN_RECD_SN}
+	</update>
+	
+	<select id="selectRecordEvalList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectRecordEvalList*/
+		SELECT 
+			A1000.*
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+					, NVL(TRUNC(A100.TOT_FINAL_ACT_TIME_FORMAT_MN / 60), 0) AS TOT_FINAL_ACT_TIME_HR
+					, NVL(MOD(A100.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_ACT_TIME_MN
+					, NVL(TRUNC(A100.TOT_FINAL_ACT_TIME_FORMAT_MN / 60) + A100.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR 
+					, NVL(MOD(A100.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_TIME_MN
+					, NVL(TRUNC((A100.VLUN_DUTY_HR * 60 - (A100.TOT_FINAL_ACT_TIME_FORMAT_MN + A100.TOT_FINAL_WP_MV_TIME * 60)) / 60), 0) AS FINAL_REMAIN_TIME_HR
+					, NVL(MOD(A100.VLUN_DUTY_HR * 60 - (A100.TOT_FINAL_ACT_TIME_FORMAT_MN + A100.TOT_FINAL_WP_MV_TIME * 60) , 60), 0) AS FINAL_REMAIN_TIME_MN
+				FROM (
+					SELECT
+						COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+						, ROW_NUMBER() OVER(ORDER BY TVEI.VLUN_EVAL_SN DESC) AS RNUM
+						, TVEI.VLUN_EVAL_SN 
+						, TVEI.EVAL_RESULT_CD
+						, (SELECT E_RESULT_CD.CNTNT_FST FROM TRMZ_CMMN_CODE_D E_RESULT_CD WHERE E_RESULT_CD.ALT_CODE = TVEI.EVAL_RESULT_CD AND E_RESULT_CD.CMMN_SN = '202111260000538') AS EVAL_RESULT_CD_NM 
+						, TVEI.MLTR_ID
+						, TAI.APPL_NM
+						, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+						, TAI.GAME_CD 
+						, (SELECT GAME_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CODE WHERE GAME_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+						, TO_CHAR(TO_DATE(TAI.APPL_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS APPL_DT
+						, TVEI.EVAL_STS 
+						, TVEI.POOR_REASON
+						, TMMI.MEMORG_SN 
+						, TMMI.MEMORG_NM 
+						, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVEI.EVAL_STS AND D10.CMMN_SN = '202111260000537') AS EVAL_STS_NM
+						, TVEI.QTR_RESULT_HR 
+						, TVEI.QTR_RESULT_MN
+						, TAI.VLUN_DUTY_HR 
+						, (
+							SELECT
+								(SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR), 0)) * 60) + SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_MN), 0))
+							FROM
+								TRMV_VLUN_RECD_M TVRM 
+							INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+								ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+							WHERE 1=1
+								AND NVL(TVRM.RECD_STS, '') = 'MY'
+								AND NVL(TVPI.PLAN_STS, '') = 'KY'
+								AND TVPI.MLTR_ID = TAAI.MLTR_ID
+						) AS TOT_FINAL_ACT_TIME_FORMAT_MN
+						, (
+							SELECT
+								SUM(NVL(NVL(TVRM.TOT_AFT_WP_MV_TIME , TVRM.TOT_PC_WP_MV_TIME), 0))
+							FROM
+								TRMV_VLUN_RECD_M TVRM 
+							INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+								ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+							WHERE 1=1
+								AND NVL(TVRM.RECD_STS, '') = 'MY'
+								AND NVL(TVPI.PLAN_STS, '') = 'KY'
+								AND TVPI.MLTR_ID = TAAI.MLTR_ID
+						) AS TOT_FINAL_WP_MV_TIME
+					FROM
+						TRMV_VLUN_EVAL_I TVEI
+					INNER JOIN TRMM_APPL_ACPT_I TAAI 
+						ON TAAI.MLTR_ID = TVEI.MLTR_ID
+					INNER JOIN TRMM_APPL_I TAI 
+						ON TAI.APPL_SN = TAAI.APPL_SN 
+					INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+						ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+					WHERE 1=1
+						<choose>
+							<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+								
+							</when>
+							<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+								AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+							</when>
+						</choose>
+						<if test='srchEvalYear != null and srchEvalYear != ""'>
+						AND TVEI.EVAL_YEAR = #{srchEvalYear}
+						</if>
+						<if test='srchEvalQtr != null and srchEvalQtr != ""'>
+						AND TVEI.EVAL_QTR = #{srchEvalQtr}
+						</if> 
+						<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+						AND TMMI.MEMORG_SN = #{srchMemorgCd}
+						</if>
+						<if test='srchGameCd != null and srchGameCd != ""'>
+						AND TAI.GAME_CD = #{srchGameCd} 
+						</if>
+						<if test='srchEvalResultCd != null and srchEvalResultCd != ""'>
+						AND TVEI.EVAL_RESULT_CD = #{srchEvalResultCd}
+						</if>
+						<if test='srchEvalSts != null and srchEvalSts != ""'>
+						AND TVEI.EVAL_STS = #{srchEvalSts}
+						</if>
+						<if test='keyword != null and keyword != ""'>
+							<choose>
+								<when test='keyKind == ""'>
+								AND (
+										UPPER(TAI.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+									)
+								</when>
+							</choose>
+						</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectPersonQtrRecord" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectPersonQtrRecord*/
+		SELECT
+			A10.*
+			, #{MLTR_ID} AS MLTR_ID
+			, #{EVAL_YEAR} AS EVAL_YEAR
+			, #{EVAL_QTR} AS EVAL_QTR
+			, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60), 0) AS TOT_FINAL_ACT_TIME_HR
+			, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_ACT_TIME_MN
+			, NVL(A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_WP_MV_TIME 
+			, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60) + A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR 
+			, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_TIME_MN
+			, NVL(TRUNC((A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60)) / 60), 0) AS FINAL_REMAIN_TIME_HR
+			, NVL(MOD(A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60) , 60), 0) AS FINAL_REMAIN_TIME_MN
+			, CASE WHEN (24*60 ) > (TOT_FINAL_ACT_TIME_FORMAT_MN + TOT_FINAL_WP_MV_TIME * 60) THEN '부진' ELSE '신규편입' END EVAL_STS_NM
+			, CASE WHEN (24*60 ) > (TOT_FINAL_ACT_TIME_FORMAT_MN + TOT_FINAL_WP_MV_TIME * 60) THEN 'PR' ELSE 'NW' END EVAL_STS
+		FROM ( 
+				SELECT
+					(
+						(SUM(NVL(TVRD.AFT_ACT_TIME_HR , TVRD.PC_ACT_TIME_HR) * 60)
+						+ SUM(NVL(TVRD.AFT_ACT_TIME_MN, TVRD.PC_ACT_TIME_MN)))
+					) AS TOT_FINAL_ACT_TIME_FORMAT_MN
+					, SUM(NVL(TVRD.AFT_WP_MV_TIME, TVRD.PC_REC_WP_MV_TIME)) AS TOT_FINAL_WP_MV_TIME
+					, TVPI.MLTR_ID
+					, TAI.VLUN_DUTY_HR
+					, TAI.APPL_NM
+					, TO_CHAR(TO_DATE(TAI.APPL_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS APPL_DT
+				FROM TRMV_VLUN_RECD_D TVRD 
+				INNER JOIN TRMV_VLUN_RECD_M TVRM 
+					ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN
+				INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+					ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+				INNER JOIN TRMM_APPL_ACPT_I TAAI 
+					ON TAAI.MLTR_ID  = TVPI.MLTR_ID
+				INNER JOIN TRMM_APPL_I TAI 
+					ON TAI.APPL_SN = TAAI.APPL_SN
+				WHERE 1=1
+					AND NVL(TVRM.RECD_STS, '') = 'MY'
+					AND NVL(TVPI.PLAN_STS, '') = 'KY'
+					AND TAAI.MLTR_ID = #{MLTR_ID}
+					AND TO_CHAR(TO_DATE(TVRD.ACT_DT, 'YYYYMMDD'), 'YYYY') = #{EVAL_YEAR}
+					AND TO_CHAR(TO_DATE(TVRD.ACT_DT, 'YYYYMMDD'), 'Q') = #{EVAL_QTR}
+				GROUP BY TVPI.MLTR_ID, TAI.APPL_NM, TAI.APPL_DT, TAI.VLUN_DUTY_HR
+		) A10
+	</select>
+	
+	<insert id="insertEval" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.insertEval*/
+		<selectKey resultType="String" keyProperty="VLUN_EVAL_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMV_VLUN_EVAL_I') FROM DUAL
+		</selectKey>
+		INSERT INTO TRMV_VLUN_EVAL_I (
+			VLUN_EVAL_SN
+			, MLTR_ID
+			, EVAL_YEAR
+			, EVAL_QTR
+			, QTR_RESULT_HR
+			, QTR_RESULT_MN
+			, EVAL_STS
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			#{VLUN_EVAL_SN}
+			, #{MLTR_ID}
+			, #{EVAL_YEAR}
+			, #{EVAL_QTR}
+			, #{QTR_RESULT_HR}
+			, #{QTR_RESULT_MN}
+			, #{EVAL_STS}
+			, SYSDATE
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<update id="updateEvalPoorReason" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateEvalPoorReason*/
+		UPDATE TRMV_VLUN_EVAL_I
+			SET POOR_REASON = #{POOR_REASON}
+				, ATCH_FILE_ID = #{ATCH_FILE_ID}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_EVAL_SN = #{VLUN_EVAL_SN}
+	</update>
+	
+	<update id="updateEval" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateEval*/
+		UPDATE TRMV_VLUN_EVAL_I
+			SET MLTR_ID = #{MLTR_ID}
+				, EVAL_YEAR = #{EVAL_YEAR}
+				, EVAL_QTR = #{EVAL_QTR}
+				, QTR_RESULT_HR = #{QTR_RESULT_HR}
+				, QTR_RESULT_MN = #{QTR_RESULT_MN}
+				, EVAL_STS = #{EVAL_STS}
+				, POOR_REASON = #{POOR_REASON}
+				, ATCH_FILE_ID = #{ATCH_FILE_ID}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_EVAL_SN = #{VLUN_EVAL_SN}
+	</update> 
+	
+	<select id="selectEval" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.selectEval*/
+		SELECT
+			TVEI.VLUN_EVAL_SN
+			, TVEI.MLTR_ID
+			, TVEI.EVAL_YEAR
+			, TVEI.EVAL_QTR
+			, TVEI.QTR_RESULT_HR
+			, TVEI.QTR_RESULT_MN
+			, TVEI.EVAL_STS
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVEI.EVAL_STS AND D10.CMMN_SN = '202111260000537') AS EVAL_STS_NM
+			, TVEI.POOR_REASON
+			, TAI.APPL_NM
+			, TAI.APPL_SN
+			, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS BRTH_DT
+			, TAI.EMAIL EMAIL
+			, TAI.CP_NO CP_NO
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+			, TMMI.MEMORG_NM 
+			, TVEI.EVAL_RESULT_CD
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVEI.EVAL_RESULT_CD AND D10.CMMN_SN = '202111260000538') EVAL_RESULT_CD_NM
+			, TVEI.EVAL_RESULT_RMK
+			, TO_CHAR(NVL(TVEI.UPDT_DTM, TVEI.REG_DTM), 'yyyy-MM-dd') AS LATEST_UPDT
+			, (SELECT TMM.MNGR_NM FROM TRMZ_MNGR_M TMM WHERE TMM.MNGR_ID = NVL(TVEI.UPDR_ID, TVEI.REGR_ID)) AS LATEST_NM
+			, TVEI.ATCH_FILE_ID
+		FROM
+			TRMV_VLUN_EVAL_I TVEI
+		INNER JOIN TRMM_APPL_ACPT_I TAAI 
+			ON TAAI.MLTR_ID = TVEI.MLTR_ID
+		INNER JOIN TRMM_APPL_I TAI 
+			ON TAI.APPL_SN = TAAI.APPL_SN 
+		INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+			ON TMMI.MEMORG_SN = TAI.MEMORG_SN 
+		WHERE 1=1
+			AND TVEI.VLUN_EVAL_SN = #{VLUN_EVAL_SN}		
+	</select>
+	
+	<update id="updateEvalResult" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.updateEvalResult*/
+		UPDATE TRMV_VLUN_EVAL_I
+			SET EVAL_RESULT_CD = #{EVAL_RESULT_CD}
+				, EVAL_RESULT_RMK = #{EVAL_RESULT_RMK}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE 1=1
+			AND VLUN_EVAL_SN = #{VLUN_EVAL_SN}
+	</update>
+	
+	<delete id="deleteEval" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.RecordDAO.deleteEval*/
+		DELETE
+			TRMV_VLUN_EVAL_I
+		WHERE 1=1
+			AND VLUN_EVAL_SN = #{VLUN_EVAL_SN}
+	</delete>
+	
+	<select id="selectRecordExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT
+			COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+			, ROW_NUMBER() OVER(ORDER BY A10.VLUN_RECD_SN DESC) AS RNUM
+			, A10.*
+		FROM (
+			SELECT 
+				TVRM.VLUN_RECD_SN 
+				, F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) AS APPL_NM
+				, F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) AS BRTH_DT
+				, TAI.GAME_CD
+				, (SELECT GAME_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CODE WHERE GAME_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+				, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN 'dom'
+						   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+				, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN '국내'
+											   ELSE '국외' END AS VLUN_PLC_DV_TXT
+				, (SELECT ACT_FIELD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D ACT_FIELD_CODE WHERE ACT_FIELD_CODE.ALT_CODE = TVPI.ACT_FIELD AND ACT_FIELD_CODE.CMMN_SN = '202111050000342') ACT_FIELD
+				, PLACE.VLUN_PLC_NM 
+				, TO_CHAR(TVPI.REG_DTM, 'YYYYMMDD') AS REG_DTM
+				, (SELECT RECD_STS_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D RECD_STS_CODE WHERE RECD_STS_CODE.ALT_CODE = TVRM.RECD_STS AND RECD_STS_CODE.CMMN_SN = '202111050000347') RECD_STS
+				, (SELECT COUNT(*) FROM TRMV_VLUN_RECD_D RECD_D WHERE RECD_D.VLUN_RECD_SN = TVRM.VLUN_RECD_SN) AS VLUN_RECD_CNT
+				, NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR) + NVL(TVRM.TOT_AFT_WP_MV_TIME, TVRM.TOT_PC_WP_MV_TIME) AS FINAL_ACT_TIME_HR
+				, NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_MN) AS FINAL_ACT_TIME_MN
+				, TMMI.MEMORG_SN
+				, TMMI.MEMORG_NM 
+			FROM
+				TRMV_VLUN_RECD_M TVRM
+			INNER JOIN TRMV_VLUN_PLAN_I TVPI
+				ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+			INNER JOIN TRMM_APPL_ACPT_I TAAI
+				ON TAAI.MLTR_ID = TVPI.MLTR_ID
+			INNER JOIN TRMM_APPL_I TAI
+				ON TAI.APPL_SN = TAAI.APPL_SN
+			INNER JOIN TRMV_VLUN_PLACE_I PLACE
+				ON PLACE.VLUN_PLC_SN = TVPI.VLUN_PLC_SN 
+			INNER JOIN TRMZ_MEMORG_MNG_I TMMI
+				ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+			WHERE 1=1
+		<if test='srchRegDtmStart != null and srchRegDtmStart != "" and srchRegDtmEnd != null and srchRegDtmEnd != ""'>
+		AND TVPI.REG_DTM <![CDATA[>=]]> TO_DATE(#{srchRegDtmStart}||'000000','YYYYMMDDHH24MISS') AND TVPI.REG_DTM <![CDATA[<=]]> TO_DATE(#{srchRegDtmEnd}||'235959','YYYYMMDDHH24MISS')
+		</if>
+		) A10	
+		WHERE 1=1
+		<choose>
+			<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+				AND A10.RECD_STS != 'TP'
+			</when>
+			<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+				AND A10.MEMORG_SN = #{SESSION_MEMORG_SN}
+				AND A10.GAME_CD = #{SESSION_GAME_CD}
+			</when>
+		</choose>
+		<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+		AND A10.MEMORG_SN = #{srchMemorgCd}
+		</if>
+		<if test='srchVlunPlcNm != null and srchVlunPlcNm != ""'>
+		AND UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{srchVlunPlcNm}) || '%'
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+		AND A10.GAME_CD = #{srchGameCd} 
+		</if>
+		<if test='srchRecdStsCd != null and srchRecdStsCd != ""'>
+		AND A10.RECD_STS = #{srchRecdStsCd}
+		</if>
+		<if test='srchVlunPlcDvType != null and srchVlunPlcDvType != ""'>
+		AND A10.VLUN_PLC_DV_TYPE = #{srchVlunPlcDvType}
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keyKind == ""'>
+				AND (
+						UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+						OR UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+						OR A10.VLUN_RECD_SN LIKE '%' || UPPER(#{keyword}) || '%'
+					)
+				</when>
+				<when test='keyKind == "USER_NAME"'>
+				AND (
+						UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+					)
+			</when>
+			<when test='keyKind == "GAME_NAME"'>
+				AND (
+						A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+					)
+			</when>
+			</choose>
+		</if>
+	</select>
+	
+	<select id="selectRecordPerExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT
+			COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+			, ROW_NUMBER() OVER(ORDER BY A100.MLTR_ID DESC) AS RNUM
+			, A100.*
+			, TO_CHAR(TO_DATE(A100.ADDM_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS ADDM_F_DT
+		FROM (
+				SELECT
+					A10.MLTR_ID
+					, A10.ADDM_DT
+					, F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',A10.APPL_NM) AS APPL_NM
+					, F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',A10.BRTH_DT) AS BRTH_DT
+					, A10.GAME_CD
+					, A10.GAME_NM
+					, TO_CHAR(TO_DATE(A10.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS EXPR_DT
+					, A10.MEMORG_SN 
+					, A10.MEMORG_NM
+					, A10.RECD_M_CNT
+					, A10.RECD_D_CNT
+					, A10.TOT_FINAL_ACT_TIME_FORMAT_MN
+					, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60), 0) AS TOT_FINAL_ACT_TIME_HR
+					, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_ACT_TIME_MN
+					, NVL(A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_WP_MV_TIME 
+					, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60) + A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR 
+					, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_TIME_MN
+					, NVL(TRUNC((A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60)) / 60), 0) AS FINAL_REMAIN_TIME_HR
+					, NVL(MOD(A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60) , 60), 0) AS FINAL_REMAIN_TIME_MN
+				FROM (
+						SELECT 
+							TAAI.MLTR_ID
+							, TAAI.ADDM_DT
+							, TAI.APPL_NM
+							, TAI.BRTH_DT
+							, TAI.GAME_CD
+							, (SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') AS GAME_NM
+							, TAI.EXPR_DT 
+							, TAI.MEMORG_SN 
+							, TMMI.MEMORG_NM
+							, TAI.VLUN_DUTY_HR
+							, (
+								SELECT
+									COUNT(*) AS RECD_M_CNT
+								FROM
+									TRMV_VLUN_RECD_M TVRM 
+								INNER JOIN TRMV_VLUN_PLAN_I TVPI
+									ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+								WHERE 1=1
+									AND NVL(TVRM.RECD_STS, '') = 'MY'
+									AND NVL(TVPI.PLAN_STS, '') = 'KY'
+									AND TVPI.MLTR_ID = TAAI.MLTR_ID 
+							) AS RECD_M_CNT
+							, (
+								SELECT 
+									COUNT(*) AS RECD_D_CNT	
+								FROM TRMV_VLUN_RECD_D TVRD 
+								INNER JOIN TRMV_VLUN_RECD_M TVRM 
+									ON TVRM.VLUN_RECD_SN = TVRD.VLUN_RECD_SN
+								INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+									ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN
+								WHERE 1=1
+									AND NVL(TVRM.RECD_STS, '') = 'MY'
+									AND NVL(TVPI.PLAN_STS, '') = 'KY'
+									AND TVPI.MLTR_ID = TAAI.MLTR_ID
+							) AS RECD_D_CNT
+							, (
+								SELECT
+									(SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR), 0)) * 60) + SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_MN), 0))
+								FROM
+									TRMV_VLUN_RECD_M TVRM 
+								INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+									ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+								WHERE 1=1
+									AND NVL(TVRM.RECD_STS, '') = 'MY'
+									AND NVL(TVPI.PLAN_STS, '') = 'KY'
+									AND TVPI.MLTR_ID = TAAI.MLTR_ID
+							) AS TOT_FINAL_ACT_TIME_FORMAT_MN
+							, (
+								SELECT
+									SUM(NVL(NVL(TVRM.TOT_AFT_WP_MV_TIME , TVRM.TOT_PC_WP_MV_TIME), 0))
+								FROM
+									TRMV_VLUN_RECD_M TVRM 
+								INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+									ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+								WHERE 1=1
+									AND NVL(TVRM.RECD_STS, '') = 'MY'
+									AND NVL(TVPI.PLAN_STS, '') = 'KY'
+									AND TVPI.MLTR_ID = TAAI.MLTR_ID
+							) AS TOT_FINAL_WP_MV_TIME
+						FROM
+							TRMM_APPL_ACPT_I TAAI
+						INNER JOIN TRMM_APPL_I TAI 
+							ON TAI.APPL_SN = TAAI.APPL_SN
+							AND NVL(TAI.APPL_STS, '') = 'MY'
+						INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+							ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+						WHERE 1=1
+				) A10
+		) A100
+		WHERE 1=1
+		<choose>
+			<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+			</when>
+			<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+				AND A100.MEMORG_SN = #{SESSION_MEMORG_SN}
+				AND A100.GAME_CD = #{SESSION_GAME_CD}
+			</when>
+		</choose>
+		<if test='srchAddmDtStart != null and srchAddmDtStart != "" and srchAddmDtEnd != null and srchAddmDtEnd != ""'>
+		AND A100.ADDM_DT BETWEEN #{srchAddmDtStart} AND #{srchAddmDtEnd}
+		</if>
+		<if test='srchExprDtStart != null and srchExprDtStart != "" and srchExprDtEnd != null and srchExprDtEnd != ""'>
+		AND A100.EXPR_DT BETWEEN #{srchExprDtStart} AND #{srchExprDtEnd}
+		</if>
+		<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+		AND A100.MEMORG_SN = #{srchMemorgCd}
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+		AND A100.GAME_CD = #{srchGameCd} 
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keyKind == ""'>
+				AND (
+						UPPER(A100.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+						OR A100.GAME_NM LIKE '%' || #{keyword} || '%'
+					)
+				</when>
+				<when test='keyKind == "USER_NAME"'>
+				AND (
+						UPPER(A100.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+					)
+				</when>
+				<when test='keyKind == "GAME_NAME"'>
+				AND (
+						A100.GAME_NM LIKE '%' || #{keyword} || '%'
+					)
+				</when>
+			</choose>
+		</if>
+	</select>
+	
+	<select id="selectEvalExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT
+			A10.*
+			, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60), 0) AS TOT_FINAL_ACT_TIME_HR
+			, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_ACT_TIME_MN
+			, NVL(A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_WP_MV_TIME 
+			, NVL(TRUNC(A10.TOT_FINAL_ACT_TIME_FORMAT_MN / 60) + A10.TOT_FINAL_WP_MV_TIME, 0) AS TOT_FINAL_TIME_HR 
+			, NVL(MOD(A10.TOT_FINAL_ACT_TIME_FORMAT_MN, 60), 0) AS TOT_FINAL_TIME_MN
+			, NVL(TRUNC((A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60)) / 60), 0) AS FINAL_REMAIN_TIME_HR
+			, NVL(MOD(A10.VLUN_DUTY_HR * 60 - (A10.TOT_FINAL_ACT_TIME_FORMAT_MN + A10.TOT_FINAL_WP_MV_TIME * 60) , 60), 0) AS FINAL_REMAIN_TIME_MN
+		FROM (
+				SELECT
+					COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+					, ROW_NUMBER() OVER(ORDER BY TVEI.VLUN_EVAL_SN DESC) AS RNUM
+					, TVEI.VLUN_EVAL_SN 
+					, TVEI.EVAL_RESULT_CD
+					, (SELECT E_RESULT_CD.CNTNT_FST FROM TRMZ_CMMN_CODE_D E_RESULT_CD WHERE E_RESULT_CD.ALT_CODE = TVEI.EVAL_RESULT_CD AND E_RESULT_CD.CMMN_SN = '202111260000538') AS EVAL_RESULT_CD_NM 
+					, TVEI.MLTR_ID
+					, F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) AS APPL_NM
+					, F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) AS BRTH_DT
+					, TAI.GAME_CD 
+					, (SELECT GAME_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CODE WHERE GAME_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+					, TO_CHAR(TO_DATE(TAI.APPL_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS APPL_DT
+					, TVEI.EVAL_STS 
+					, TVEI.POOR_REASON
+					, TMMI.MEMORG_SN 
+					, TMMI.MEMORG_NM 
+					, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVEI.EVAL_STS AND D10.CMMN_SN = '202111260000537') AS EVAL_STS_NM
+					, TVEI.QTR_RESULT_HR 
+					, TVEI.QTR_RESULT_MN
+					, TAI.VLUN_DUTY_HR 
+					, (
+						SELECT
+							(SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_HR, TVRM.TOT_PC_ACT_TIME_HR), 0)) * 60) + SUM(NVL(NVL(TVRM.TOT_AFT_ACT_TIME_MN, TVRM.TOT_PC_ACT_TIME_MN), 0))
+						FROM
+							TRMV_VLUN_RECD_M TVRM 
+						INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+							ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+						WHERE 1=1
+							AND NVL(TVRM.RECD_STS, '') = 'MY'
+							AND NVL(TVPI.PLAN_STS, '') = 'KY'
+							AND TVPI.MLTR_ID = TAAI.MLTR_ID
+					) AS TOT_FINAL_ACT_TIME_FORMAT_MN
+					, (
+						SELECT
+							SUM(NVL(NVL(TVRM.TOT_AFT_WP_MV_TIME , TVRM.TOT_PC_WP_MV_TIME), 0))
+						FROM
+							TRMV_VLUN_RECD_M TVRM 
+						INNER JOIN TRMV_VLUN_PLAN_I TVPI 
+							ON TVPI.VLUN_PLAN_SN = TVRM.VLUN_PLAN_SN 
+						WHERE 1=1
+							AND NVL(TVRM.RECD_STS, '') = 'MY'
+							AND NVL(TVPI.PLAN_STS, '') = 'KY'
+							AND TVPI.MLTR_ID = TAAI.MLTR_ID
+					) AS TOT_FINAL_WP_MV_TIME
+				FROM
+					TRMV_VLUN_EVAL_I TVEI
+				INNER JOIN TRMM_APPL_ACPT_I TAAI 
+					ON TAAI.MLTR_ID = TVEI.MLTR_ID
+				INNER JOIN TRMM_APPL_I TAI 
+					ON TAI.APPL_SN = TAAI.APPL_SN 
+				INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+					ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+				WHERE 1=1
+					<if test='srchEvalYear != null and srchEvalYear != ""'>
+					AND TVEI.EVAL_YEAR = #{srchEvalYear}
+					</if>
+					<if test='srchEvalQtr != null and srchEvalQtr != ""'>
+					AND TVEI.EVAL_QTR = #{srchEvalQtr}
+					</if> 
+					<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+					AND TMMI.MEMORG_SN = #{srchMemorgCd}
+					</if>
+					<if test='srchGameCd != null and srchGameCd != ""'>
+					AND TAI.GAME_CD = #{srchGameCd} 
+					</if>
+					<if test='srchEvalResultCd != null and srchEvalResultCd != ""'>
+					AND TVEI.EVAL_RESULT_CD = #{srchEvalResultCd}
+					</if>
+					<if test='srchEvalSts != null and srchEvalSts != ""'>
+					AND TVEI.EVAL_STS = #{srchEvalSts}
+					</if>
+					<if test='keyword != null and keyword != ""'>
+						<choose>
+							<when test='keyKind == ""'>
+							AND (
+									UPPER(TAI.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+								)
+							</when>
+						</choose>
+					</if>
+		) A10
+	</select>
+</mapper>

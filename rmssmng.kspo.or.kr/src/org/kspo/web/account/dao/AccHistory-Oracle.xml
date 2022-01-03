@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.account.dao.AccHistoryDAO">
+	<!-- 접속이력 목록 조회 -->
+	<select id="selectAcHsList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	A.*
+				,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				,NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM
+			(SELECT A10.*
+			       ,COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+				   ,CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+			FROM 
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY TAL.ACC_DT DESC) AS RNUM
+						,TAL.ACC_DT 
+						,TMM.MNGR_ID AS ACC_ID
+						,MAX(TMM.MNGR_NM) AS ACC_NM
+						,MAX(TAG.AUTH_GRP_NM) AS GRP_NM
+						,TO_CHAR(TAL.REG_DTM, 'YYYY-MM-DD HH24:MI:SS') AS REG_DTM
+						,MAX(TME.MENU_NM) AS MENU_NM 
+						,CASE MAX(TMM.GRP_SN) WHEN '2' THEN (SELECT MAX(MEMORG_NM) FROM TRMZ_MEMORG_MNG_I WHERE MEMORG_SN = TMM.MEMORG_SN) ELSE MAX(TAG.AUTH_GRP_NM) END AS LOC_NM
+						,MAX(TAL.REGR_IP) AS ACC_IP
+				FROM	TRMZ_ACCESS_LOG_L TAL,
+				        TRMZ_MNGR_M TMM,
+				        TRMZ_AUTH_GRP_M TAG,
+				        TRMZ_MENU_MNG_M TME
+				WHERE	1=1
+				  AND   TAL.USER_SN = TMM.MNGR_SN
+				  AND   TMM.GRP_SN = TAG.GRP_SN
+				  AND   TAL.MENU_SN = TME.MENU_SN 
+				<choose>
+					<when test='stdYmd != null and stdYmd != "" and endYmd != null and endYmd != ""'>
+						AND TAL.ACC_DT BETWEEN #{stdYmd} AND #{endYmd}
+					</when>
+					<otherwise>
+						AND TAL.ACC_DT = TO_CHAR(SYSDATE,'YYYYMMDD')
+					</otherwise>
+				</choose>
+				<if test='keyword != null and keyword != ""'>
+					<choose>
+						<when test='keykind == ""'>
+								AND	(TMM.MNGR_NM LIKE '%' || #{keyword} || '%'
+								OR	TMM.MNGR_ID LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test='keykind == "USER_NM"'>
+								AND		TMM.MNGR_NM LIKE '%' || #{keyword} || '%'
+						</when>
+						<when test='keykind == "USER_ID"'>
+								AND		TMM.MNGR_ID LIKE '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</if>
+				GROUP BY  TAL.ACC_DT, TAL.ACC_TIME, TMM.MNGR_ID, TAL.REG_DTM, TMM.MEMORG_SN
+				ORDER BY TAL.ACC_DT DESC, TAL.ACC_TIME DESC
+				) A10
+			)A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<!-- 접속이력 목록 엑셀 조회 -->
+	<select id="selectAcHsExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT	ROW_NUMBER () OVER (ORDER BY TAL.ACC_DT DESC) AS RNUM
+				,TAL.ACC_DT 
+				,TMM.MNGR_ID AS ACC_ID
+				,MAX(TMM.MNGR_NM) AS ACC_NM
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn}, 'NAME',MAX(TMM.MNGR_NM)) B_ACC_NM
+				,MAX(TAG.AUTH_GRP_NM) AS GRP_NM
+				,TO_CHAR(TAL.REG_DTM, 'YYYY-MM-DD HH24:MI:SS') AS REG_DTM
+				,MAX(TME.MENU_NM) AS MENU_NM 
+				,CASE MAX(TMM.GRP_SN) WHEN '2' THEN (SELECT MAX(MEMORG_NM) FROM TRMZ_MEMORG_MNG_I WHERE MEMORG_SN = TMM.MEMORG_SN) ELSE MAX(TAG.AUTH_GRP_NM) END AS LOC_NM
+				,MAX(TAL.REGR_IP) AS ACC_IP
+		FROM	TRMZ_ACCESS_LOG_L TAL,
+		        TRMZ_MNGR_M TMM,
+		        TRMZ_AUTH_GRP_M TAG,
+		        TRMZ_MENU_MNG_M TME
+		WHERE	1=1
+		  AND   TAL.USER_SN = TMM.MNGR_SN
+		  AND   TMM.GRP_SN = TAG.GRP_SN
+		  AND   TAL.MENU_SN = TME.MENU_SN 
+		<choose>
+			<when test='stdYmd != null and stdYmd != "" and endYmd != null and endYmd != ""'>
+				AND TAL.ACC_DT BETWEEN #{stdYmd} AND #{endYmd}
+			</when>
+			<otherwise>
+				AND TAL.ACC_DT = TO_CHAR(SYSDATE,'YYYYMMDD')
+			</otherwise>
+		</choose>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keykind == ""'>
+						AND	(TMM.MNGR_NM LIKE '%' || #{keyword} || '%'
+						OR	TMM.MNGR_ID LIKE '%' || #{keyword} || '%')
+				</when>
+				<when test='keykind == "USER_NM"'>
+						AND		TMM.MNGR_NM LIKE '%' || #{keyword} || '%'
+				</when>
+				<when test='keykind == "USER_ID"'>
+						AND		TMM.MNGR_ID LIKE '%' || #{keyword} || '%'
+				</when>
+			</choose>
+		</if>
+		GROUP BY  TAL.ACC_DT, TAL.ACC_TIME, TMM.MNGR_ID, TAL.REG_DTM, TMM.MEMORG_SN
+		ORDER BY TAL.ACC_DT DESC, TAL.ACC_TIME DESC
+	</select>
+	
+</mapper>

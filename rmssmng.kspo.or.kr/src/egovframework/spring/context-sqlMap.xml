@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+	<!-- rmss -->
+    <bean id="rmss-sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="rmss-dataSource" />
+    	<property name="configLocation" value="classpath:/egovframework/sqlmap/sql-mapper-config.xml" />
+    	<property name="mapperLocations">
+			<array>
+              	<value>classpath:/org/kspo/**/*.xml</value>
+			</array>
+		</property>
+	</bean>
+	<bean class="egovframework.rte.psl.dataaccess.mapper.MapperConfigurer">
+		<property name="basePackage" value="org.kspo.*, org.kspo.web.*" />
+		<property name="sqlSessionFactoryBeanName" value="rmss-sqlSession" />
+		<property name="annotationClass" value="org.kspo.framework.annotation.RmssMapper"></property>
+    </bean>
+
+	<!-- sure -->
+    <bean id="surem-sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="surem-dataSource" />
+    	<property name="configLocation" value="classpath:/egovframework/sqlmap/sql-mapper-config.xml" />
+    	<property name="mapperLocations">
+			<array>
+              	<value>classpath:/org/kspo/**/*.xml</value>
+			</array>
+		</property>
+	</bean>
+	<bean class="egovframework.rte.psl.dataaccess.mapper.MapperConfigurer">
+		<property name="basePackage" value="org.kspo.*, org.kspo.web.*" />
+		<property name="sqlSessionFactoryBeanName" value="surem-sqlSession" />
+		<property name="annotationClass" value="org.kspo.framework.annotation.SureMapper"></property>
+    </bean>
+    
+</beans>

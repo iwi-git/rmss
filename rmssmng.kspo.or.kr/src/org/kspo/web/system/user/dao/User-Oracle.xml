@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.system.user.dao.UserDAO">
+	
+	<!-- 사용자 관리 사용자 목록 조회 -->
+	<select id="selectUserList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.User.selectUserList*/
+		SELECT	A.*
+				, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM	(
+				SELECT	A10.*
+						, CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM	(
+						SELECT	ROWNUM AS RNUM
+								, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+								, A100.MNGR_SN
+								, A100.MNGR_ID
+								, A100.MNGR_NM
+								, A100.MEMORG_SN
+								, A100.PASSWORD
+								, A100.PASSWORD_CHANGE_DATE
+								, A100.CRTFC_YN
+								, A100.GPINKEY
+								, A100.GRP_SN
+								, (
+								SELECT	SUB.USER_DV
+								FROM 	TRMZ_AUTH_GRP_M SUB
+								WHERE	SUB.GRP_SN = A100.GRP_SN
+								) AS USER_DV
+								, (
+								SELECT	SUB2.CNTNT_FST
+								FROM 	TRMZ_AUTH_GRP_M SUB1
+										, TRMZ_CMMN_CODE_D SUB2
+								WHERE	SUB1.GRP_SN = A100.GRP_SN
+								AND		SUB1.USER_DV = SUB2.ALT_CODE
+								AND		SUB2.CMMN_SN = '15'
+								) AS USER_DV_NM
+								, A100.DEPT_NM
+								, A100.OFCPS_NM
+								, A100.TELNO
+								, A100.CPNO
+								, A100.EMAIL
+								, A100.APPL_DATE
+								, A100.GRNT_STS
+								, A100.GRNT_DATE
+								, A100.GRNTR_ID
+								, A100.USE_YN
+								, A100.ACNT_STS
+								, A100.LOGIN_ERR_COUNT
+								, A100.PRI_PROTC_PLCY_AGRE_YN
+								, A100.DEL_YN
+								, A100.LOCGOV_NM
+								, TO_CHAR(A100.REG_DTM,'YYYY-MM-DD') AS REG_DT
+								, (SELECT SUB.MNGR_NM FROM TRMZ_MNGR_M SUB WHERE SUB.MNGR_ID = A100.REGR_ID) AS REGR_ID
+						FROM	TRMZ_MNGR_M A100
+						<where>
+							<if test='USER_DV != null and USER_DV != ""'>
+								AND		A100.GRP_SN IN (SELECT SUB.GRP_SN
+													 	 FROM TRMZ_AUTH_GRP_M SUB
+													    WHERE SUB.USER_DV = #{USER_DV})
+							</if>
+							<if test='USE_YN != null and USE_YN != ""'>
+								AND		A100.USE_YN = #{USE_YN}
+							</if>
+							<if test='keyword != null and keyword != ""'>
+								<choose>
+									<when test='keykind == ""'>
+											AND	(A100.MNGR_ID LIKE '%' || #{keyword} || '%'
+											OR	A100.MNGR_NM LIKE '%' || #{keyword} || '%'
+											OR	A100.DEPT_NM LIKE '%' || #{keyword} || '%')
+									</when>
+									<when test='keykind == "MNGR_ID"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A100.MNGR_ID LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+									<when test='keykind == "MNGR_NM"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A100.MNGR_NM LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+									<when test='keykind == "DEPT_NM"'>
+										<if test='keyword != null and keyword != ""'>
+											AND		A100.DEPT_NM LIKE '%' || #{keyword} || '%'
+										</if>
+									</when>
+								</choose>
+							</if>
+							AND NVL(A100.DEL_YN, 'N') = 'N'
+						</where>
+						ORDER BY A100.REG_DTM
+						) A10
+				) A
+		WHERE	A.N_PAGE_NO = NVL(#{currentPageNo},1)
+		ORDER BY A.REG_DT
+	</select>
+	
+	<!-- 사용자 관리 사용자 상세 수정 -->
+	<update id="updateUserDtl" parameterType="KSPOMap">
+		/*org.kspo.web.User.updateUserDtl*/
+		UPDATE	TRMZ_MNGR_M
+		SET		MNGR_NM = #{MNGR_NM}
+				, DEPT_NM = #{DEPT_NM}
+				, GRP_SN = #{GRP_SN}
+				, USE_YN = #{USE_YN}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	MNGR_SN = #{MNGR_SN}
+	</update>
+	
+	<!-- 사용자 관리 사용자 상세 등록 -->
+	<insert id="insertUserDtl" parameterType="KSPOMap">
+		/*org.kspo.web.User.insertUserDtl*/
+		INSERT INTO TRMZ_MNGR_M(
+			MNGR_SN
+			, MNGR_ID
+			, PASSWORD
+			, MNGR_NM
+			, MEMORG_SN
+			, DEPT_NM
+			, LOCGOV_NM
+			, CI
+			, DI
+			, GRP_SN
+			, USE_YN
+			, DEL_YN
+			, KSPO_YN
+			, ACNT_STS
+			, LOGIN_ERR_COUNT
+			, TELNO
+			, CPNO
+			, EMAIL
+			, APPL_DATE
+			, REG_DTM
+			, REGR_ID
+		) VALUES (
+			(SELECT F_GET_SEQ('TRMZ_MNGR_M') FROM DUAL)
+			, #{MNGR_ID}
+			, #{PASSWORD}
+			, #{MNGR_NM}
+			, #{MEMORG_SN}
+			, #{DEPT_NM}
+			, #{LOCGOV_NM, jdbcType=VARCHAR}
+			, #{CI, jdbcType=VARCHAR}
+			, #{DI, jdbcType=VARCHAR}
+			, #{GRP_SN, jdbcType=VARCHAR}
+			, 'Y'
+			, 'N'
+			, 'N'
+			, 'TA'
+			, 0
+			, #{TELNO1, jdbcType=VARCHAR}||#{TELNO2, jdbcType=VARCHAR}||#{TELNO3, jdbcType=VARCHAR}
+			, #{CPNO1, jdbcType=VARCHAR}||#{CPNO2, jdbcType=VARCHAR}||#{CPNO3, jdbcType=VARCHAR}
+			, #{EMAIL1, jdbcType=VARCHAR} || '@' || #{EMAIL2, jdbcType=VARCHAR}
+			, TO_CHAR(SYSDATE,'YYYYMMDD')
+			, SYSDATE
+			, #{MNGR_ID}
+		)
+	</insert>
+	
+	<!-- 사용자 관리 사용자 상세 삭제 -->
+	<update id="deleteUserDtl" parameterType="KSPOMap">
+		/*org.kspo.web.User.deleteUserDtl*/
+		UPDATE	TRMZ_MNGR_M
+		SET		DEL_YN = 'Y'
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{EMP_NO}
+		WHERE	MNGR_ID IN
+		<foreach collection="chk" index="index" item="MNGR_ID" open="(" close=")" separator=",">
+			#{MNGR_ID}
+		</foreach>
+	</update>
+	
+	<!-- 사용자 관리 사용자 비밀번호 초기화 -->
+	<update id="updateMngrPassword" parameterType="KSPOMap">
+		/*org.kspo.web.User.updateMngrPassword*/
+		UPDATE	TRMZ_MNGR_M
+		SET		PASSWORD = #{PASSWORD}
+				, LOGIN_ERR_COUNT = 0
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID = #{MNGR_ID}
+		WHERE	MNGR_ID = #{MNGR_ID}
+	</update>
+	
+	<!-- 사용자 정보 조회 -->
+	<select id="selectUserInfo" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.User.selectUserInfo*/
+		SELECT A.* 
+		FROM (
+		SELECT	TMM.MNGR_SN
+				, TMM.MNGR_ID
+				, CRYPTO.ENC('normal',TMM.MNGR_ID) AS MNGR_ID_ENC
+				, TMM.PASSWORD
+				, TMM.MNGR_NM
+				, TMM.DEPT_NM
+				, TMM.USE_YN
+				, TMM.GRP_SN
+				, (
+				    SELECT  
+				        SUB.USER_DV
+				    FROM    
+				        TRMZ_AUTH_GRP_M SUB
+				    WHERE   
+				        SUB.GRP_SN = TMM.GRP_SN
+				) AS USER_DV  				
+				, TMM.LOGIN_ERR_COUNT
+		        , TMM.LOGIN_ERR_DTM
+		        , ROUND((SYSDATE-TMM.LOGIN_ERR_DTM)*24*60) LOGIN_ERR_LIMIT
+				, TMM.KSPO_YN
+				, TMM.MEMORG_SN
+				, (SELECT GAME_CD FROM TRMZ_MEMORG_MNG_I WHERE  TMM.MEMORG_SN = MEMORG_SN) GAME_CD
+				, TMM.ACNT_STS
+				, NVL(TMM.DEL_YN,'N') DEL_YN
+		FROM	TRMZ_MNGR_M TMM
+		UNION ALL
+		SELECT	TDMM.MNGR_SN
+				, TDMM.MNGR_ID
+				, CRYPTO.ENC('normal',TDMM.MNGR_ID) AS MNGR_ID_ENC
+				, TDMM.PASSWORD
+				, TDMM.MNGR_NM
+				, TDMM.DEPT_NM
+				, TDMM.USE_YN
+				, TDMM.GRP_SN
+				, (
+				    SELECT  
+				        SUB.USER_DV
+				    FROM    
+				        TRMZ_AUTH_GRP_M SUB
+				    WHERE   
+				        SUB.GRP_SN = TDMM.GRP_SN
+				) AS USER_DV  				
+				, TDMM.LOGIN_ERR_COUNT
+		        , TDMM.LOGIN_ERR_DTM
+		        , ROUND((SYSDATE-TDMM.LOGIN_ERR_DTM)*24*60) LOGIN_ERR_LIMIT
+				, TDMM.KSPO_YN
+				, TDMM.MEMORG_SN
+				, (SELECT GAME_CD FROM TRMZ_MEMORG_MNG_I WHERE  TDMM.MEMORG_SN = MEMORG_SN) GAME_CD
+				, TDMM.ACNT_STS
+				, NVL(TDMM.DEL_YN,'N') DEL_YN
+		FROM	TRMZ_DEL_MNGR_M TDMM
+		) A
+		WHERE	1=1
+		<if test='MNGR_ID != null and MNGR_ID != ""'>
+			AND		A.MNGR_ID = #{MNGR_ID}
+		</if>
+		<if test='USER != null and USER != ""'>
+			AND		A.MNGR_SN = #{USER}
+		</if>
+	</select>
+	
+	<!-- 비밀번호 오류 횟수 수정(증가) -->
+	<update id="updateLoginErrCntAdd" parameterType="KSPOMap">
+		/*org.kspo.web.User.updateLoginErrCntAdd*/
+		UPDATE	TRMZ_MNGR_M
+		SET		LOGIN_ERR_COUNT = (SELECT NVL(LOGIN_ERR_COUNT,0)+1 FROM TRMZ_MNGR_M WHERE MNGR_ID = #{MNGR_ID})
+				, LOGIN_ERR_DTM = SYSDATE
+		WHERE	MNGR_ID = #{MNGR_ID}
+	</update>
+	
+	<!-- 비밀번호 오류 횟수 수정(초기화) -->
+	<update id="updateLoginErrCntReset" parameterType="KSPOMap">
+		/*org.kspo.web.User.updateLoginErrCntReset*/
+		UPDATE	TRMZ_MNGR_M
+		SET		LOGIN_ERR_COUNT = 0
+				, LOGIN_ERR_DTM = ''
+				, LAST_LOGIN_DTM = SYSDATE
+		WHERE	MNGR_ID = #{MNGR_ID}
+	</update>
+	
+	<!-- 사용자 관리 사용자 상세 조회 -->
+	<select id="selectUserDtlList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.User.selectAuthDtlList*/
+		SELECT	A.MNGR_SN
+				, A.MNGR_ID
+				, A.MNGR_NM
+				, A.DEPT_NM
+				, (
+				SELECT	SUB.USER_DV
+				FROM 	TRMZ_AUTH_GRP_M SUB
+				WHERE	SUB.GRP_SN = A.GRP_SN
+				) AS USER_DV
+				, A.GRP_SN
+				, A.USE_YN
+		FROM	TRMZ_MNGR_M A
+		WHERE	A.MNGR_SN = #{MNGR_SN}
+	</select>
+	
+	<!-- 로그인한 회원정보 조회 -->
+	<select id="selectloginUserDtlList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.User.selectloginUserDtlList*/
+		SELECT	A.MNGR_SN
+				, A.MNGR_ID
+				, A.MNGR_NM
+				, A.DEPT_NM
+				, (
+				SELECT	SUB.USER_DV
+				FROM 	TRMZ_AUTH_GRP_M SUB
+				WHERE	SUB.GRP_SN = A.GRP_SN
+				) AS USER_DV
+				, (
+					SELECT	SUB2.CNTNT_FST
+                  	FROM	TRMZ_AUTH_GRP_M SUB1,
+                          	TRMZ_CMMN_CODE_D SUB2
+                  	WHERE	SUB1.GRP_SN = A.GRP_SN
+                  	AND		SUB1.USER_DV = SUB2.ALT_CODE
+                  	AND		SUB2.CMMN_SN = '15'
+                  ) AS USER_DV_NM
+				, A.GRP_SN
+				, A.USE_YN
+				, A.TELNO
+				, A.CPNO
+				, A.MEMORG_SN
+				, (SELECT MAX(MEMORG_NM) FROM TRMZ_MEMORG_MNG_I WHERE MEMORG_SN = A.MEMORG_SN) MEMORG_NM
+				, (SELECT MAX(MEMORG_TEL_NO) FROM TRMZ_MEMORG_MNG_I WHERE MEMORG_SN = A.MEMORG_SN) MEMORG_TEL_NO
+		FROM	TRMZ_MNGR_M A
+		WHERE	NVL(A.DEL_YN,'N') = 'N'
+		<if test='MNGR_ID != null and MNGR_ID != ""'>
+			AND		A.MNGR_ID = #{MNGR_ID}
+		</if>
+		<if test='USER != null and USER != ""'>
+			AND		A.MNGR_SN = #{USER}
+		</if>
+	</select>
+	
+	<!-- 사용자 정보 비밀번호 체크 -->
+	<select id="selectUserChk" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.User.selectUserChk*/
+		SELECT	A.MNGR_ID
+						, A.USE_YN
+						, A.GRP_SN
+						, A.LOGIN_ERR_COUNT
+				        , ROUND((SYSDATE-A.LOGIN_ERR_DTM)*24*60) LOGIN_ERR_LIMIT
+				        , A.MNGR_ID AS E_MNGR_ID
+				        , NVL(A.DEL_YN,'N') DEL_YN
+				FROM	TRMZ_MNGR_M A
+		WHERE	1=1
+		  AND		A.MNGR_ID = #{MNGR_ID}
+		  AND   A.PASSWORD = #{PASSWORD}
+	</select>
+	
+</mapper>

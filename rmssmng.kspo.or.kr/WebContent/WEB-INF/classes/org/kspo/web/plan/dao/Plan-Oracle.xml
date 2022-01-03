@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.plan.dao.PlanDAO">
+
+	<select id="selectPlanList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPlanList*/
+		SELECT 
+			A1000.N_PAGE_NO
+			, A1000.N_PAGE_NO
+			, A1000.TOTAL_RECORD_COUNT
+			, A1000.RNUM
+			, A1000.VLUN_PLAN_SN
+			, A1000.ACT_FIELD
+			, A1000.ACT_PREARNGE_DT
+			, A1000.MAIN_CONTENTS
+			, A1000.PLAN_STS
+			, A1000.PLAN_STS_NM
+			, A1000.ACT_PLACE
+			, TO_CHAR(A1000.VLUN_APPL_DTM, 'YYYY-MM-DD') AS VLUN_APPL_DTM
+			, A1000.RECEIPT_DTM
+			, A1000.RECEIPT_REASON
+			, TO_CHAR(A1000.REG_DTM, 'YYYYMMDD') AS REG_DTM 
+			, A1000.REGR_ID
+			, A1000.UPDT_DTM
+			, A1000.UPDR_ID
+			, A1000.VLUN_TGT_TXT
+			, TO_CHAR(TO_DATE(A1000.VLUN_ACT_START, 'YYYYMMDD'), 'YYYY-MM-DD') AS VLUN_ACT_START  
+			, TO_CHAR(TO_DATE(A1000.VLUN_ACT_END, 'YYYYMMDD'), 'YYYY-MM-DD') AS VLUN_ACT_END
+			, A1000.ORG_VLUN_PLAN_SN
+			, A1000.APPL_NM
+			, TO_CHAR(TO_DATE(A1000.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			, A1000.MEMORG_NM
+			, A1000.VLUN_PLC_NM
+			, A1000.VLUN_PLC_DV_TYPE
+			, A1000.VLUN_PLC_DV_TXT
+			, A1000.GAME_CD
+			, A1000.GAME_CD_NM
+			, A1000.VLUN_PLC_ADDRESS
+			, A1000.PLC_MNGR_NM
+			, A1000.PLC_MNGR_TEL_NO AS PLC_MNGR_TEL_NO
+			, A1000.PLC_MNGR_EMAIL AS PLC_MNGR_EMAIL
+			, A1000.PLC_MNGR_CP_NO AS PLC_MNGR_CP_NO
+			, A1000.MEMORG_SN
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+					SELECT 
+						COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+						, ROW_NUMBER() OVER(ORDER BY  A10.VLUN_PLAN_SN DESC) AS RNUM
+						, A10.*
+					FROM (
+							SELECT
+								TVPI.VLUN_PLAN_SN 
+								, (SELECT ACT_FIELD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D ACT_FIELD_CODE WHERE ACT_FIELD_CODE.ALT_CODE = TVPI.ACT_FIELD AND ACT_FIELD_CODE.CMMN_SN = '202111050000342') ACT_FIELD
+								, TVPI.ACT_PREARNGE_DT 
+								, DBMS_LOB.SUBSTR(TVPI.MAIN_CONTENTS) AS MAIN_CONTENTS
+								, TVPI.PLAN_STS
+								, (SELECT PLAN_STS_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D PLAN_STS_CODE WHERE PLAN_STS_CODE.ALT_CODE = TVPI.PLAN_STS AND PLAN_STS_CODE.CMMN_SN = '202111090000350') AS PLAN_STS_NM 
+								, TVPI.ACT_PLACE 
+								, TVPI.VLUN_APPL_DTM
+								, TVPI.RECEIPT_DTM
+								, DBMS_LOB.SUBSTR(TVPI.RECEIPT_REASON) AS RECEIPT_REASON
+								, TVPI.REG_DTM
+								, TVPI.REGR_ID 
+								, TVPI.UPDT_DTM 
+								, TVPI.UPDR_ID
+								, (SELECT VLUN_TGT_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D VLUN_TGT_CODE WHERE VLUN_TGT_CODE.ALT_CODE = TVPI.VLUN_TGT AND VLUN_TGT_CODE.CMMN_SN = '202111150000351') AS VLUN_TGT_TXT 
+								, TVPI.VLUN_ACT_START
+								, TVPI.VLUN_ACT_END
+								, TVPI.ORG_VLUN_PLAN_SN
+								, TAI.APPL_NM 
+								, TAI.BRTH_DT
+								, TMMI.MEMORG_NM
+								, PLACE.VLUN_PLC_NM
+								, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN 'dom'
+										   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+								, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN '국내'
+										   ELSE '국외' END AS VLUN_PLC_DV_TXT
+								, TAI.GAME_CD
+								, (SELECT TMMI.CNTNT_FST FROM TRMZ_CMMN_CODE_D TMMI WHERE TMMI.ALT_CODE = TAI.GAME_CD AND TMMI.CMMN_SN = '202111050000341') GAME_CD_NM
+								, PLACE.VLUN_PLC_ADDRESS
+								, PLACE.PLC_MNGR_NM
+								, PLACE.PLC_MNGR_TEL_NO
+								, PLACE.PLC_MNGR_EMAIL
+								, PLACE.PLC_MNGR_CP_NO
+								, TAI.MEMORG_SN
+							FROM
+								TRMV_VLUN_PLAN_I TVPI
+							INNER JOIN TRMM_APPL_ACPT_I TAAI 
+								ON TVPI.MLTR_ID = TAAI.MLTR_ID
+							INNER JOIN TRMM_APPL_I TAI
+								ON TAI.APPL_SN  = TAAI.APPL_SN 
+							INNER JOIN TRMV_VLUN_PLACE_I PLACE
+								ON PLACE.VLUN_PLC_SN = TVPI.VLUN_PLC_SN
+							INNER JOIN TRMZ_MEMORG_MNG_I TMMI
+								ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+							WHERE 1=1
+							<choose>
+								<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+									AND TVPI.PLAN_STS != 'TP'
+								</when>
+								<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+									AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+								</when>
+							</choose>
+							<if test='srchRegDtmStart != null and srchRegDtmStart != "" and srchRegDtmEnd != null and srchRegDtmEnd != ""'>
+							AND TVPI.REG_DTM <![CDATA[>=]]> TO_DATE(#{srchRegDtmStart}||'000000','YYYYMMDDHH24MISS') AND TVPI.REG_DTM <![CDATA[<=]]> TO_DATE(#{srchRegDtmEnd}||'235959','YYYYMMDDHH24MISS')
+							</if>
+							<if test='VLUN_PLAN_SN != null and VLUN_PLAN_SN != ""'>
+							AND TVPI.VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+							</if>					
+							<if test='srchGameCd != null and srchGameCd != ""'>
+							AND TAI.GAME_CD = #{srchGameCd} 
+							</if>
+							<if test='srchPalnStsCd != null and srchPalnStsCd != ""'>
+							AND TVPI.PLAN_STS = #{srchPalnStsCd}
+							</if>
+							<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+							AND TAI.MEMORG_SN = #{srchMemorgCd}
+							</if>
+							<if test='srchVlunActDateType != null and srchVlunActDateType != ""'>
+								<choose>
+									<when test='srchVlunActDateType == "START"'>
+									AND TVPI.VLUN_ACT_START BETWEEN #{srchVlunActDateStart} AND #{srchVlunActDateEnd}
+									</when>
+									<when test='srchVlunActDateType == "END"'>
+									AND TVPI.VLUN_ACT_END BETWEEN #{srchVlunActDateStart} AND #{srchVlunActDateEnd}
+									</when>
+								</choose>
+							</if>
+					) A10
+					WHERE 1=1
+					<if test='srchVlunPlcDvType != null and srchVlunPlcDvType != ""'>
+							AND A10.VLUN_PLC_DV_TYPE = #{srchVlunPlcDvType}
+					</if>
+					<if test='keyword != null and keyword != ""'>
+						<choose>
+							<when test='keyKind == ""'>
+							AND (
+									UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+									OR UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+									OR A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+								)
+							</when>
+							<when test='keyKind == "USER_NAME"'>
+							AND (
+									UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+								)
+							</when>
+							<when test='keyKind == "GAME_NAME"'>
+							AND (
+									A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+								)
+							</when>
+						</choose>
+					</if>
+					
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectPersonList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPersonList*/
+		SELECT 
+			A1000.*
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY TAAI.MLTR_ID DESC) AS RNUM
+							, TAAI.MLTR_ID
+							, TAI.MEMORG_SN
+							, TMMI.MEMORG_NM
+							, TAI.APPL_SN
+							, TAI.APPL_NM
+							, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+							, TAI.GAME_CD
+							, (SELECT GAME_CD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CD_CODE WHERE GAME_CD_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CD_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+							, TAI.APPL_STS
+							, TAI.PROC_STS
+						FROM
+							TRMM_APPL_ACPT_I TAAI
+						INNER JOIN TRMM_APPL_I TAI
+							ON TAI.APPL_SN = TAAI.APPL_SN
+						INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+							ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+						WHERE 1=1
+							AND TAI.APPL_STS = 'MY'--승인완료
+							AND TAI.PROC_STS IN ('AG', 'MC')--편입중, 만료후 취소
+							<if test='GRP_SN == "2"'>
+								AND TMMI.MEMORG_SN = #{SESSION_MEMORG_SN}
+								AND TAI.GAME_CD = #{SESSION_GAME_CD}
+							</if>
+							<if test='GRP_SN == "1"'>
+								<if test='pSrchGameCd != null and pSrchGameCd != ""'>
+									AND TAI.GAME_CD = #{pSrchGameCd}
+								</if>
+							</if>
+							<if test='pSrchKeyword != null and pSrchKeyword != ""'>
+								<choose>
+									<when test='pSrchKeyKind == ""'>
+									AND (
+											UPPER(TAI.APPL_NM) LIKE '%' || UPPER(#{pSrchKeyword}) || '%'
+											OR TAI.BRTH_DT LIKE '%' || #{pSrchKeyword} || '%'
+										)
+									</when>
+								</choose>
+							</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectPersonInfo" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPersonInfo*/
+		SELECT
+			TAAI.MLTR_ID
+			, TAI.APPL_SN	
+			, TAI.APPL_NM 
+			, TO_CHAR(TO_DATE(TAI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			, TAI.ADDR 
+			, TAI.ADDR_DTL 
+			, TAI.EMAIL EMAIL 
+			, TAI.CP_NO CP_NO
+			, TAI.MEMORG_SN
+			, TMMI.MEMORG_NM
+			, TAI.APPL_STS
+			, TAI.PROC_STS 
+			, (SELECT GAME_CD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D GAME_CD_CODE WHERE GAME_CD_CODE.ALT_CODE = TAI.GAME_CD AND GAME_CD_CODE.CMMN_SN = '202111050000341') GAME_CD_NM
+			, TEAM_NM
+            ,(SELECT (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = CTRL_MMA_CD AND D10.CMMN_SN = '202111050000337') CTRL_MMA_NM FROM TRMM_APPL_ACPT_I WHERE APPL_SN = TAI.APPL_SN) CTRL_MMA_CD
+            ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+            ,TAI.EXPR_DT
+		FROM
+			TRMM_APPL_ACPT_I TAAI 
+		INNER JOIN TRMM_APPL_I TAI
+			ON TAI.APPL_SN  = TAAI.APPL_SN
+		INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+			ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+		WHERE 1=1
+			AND TAAI.MLTR_ID  = #{MLTR_ID}
+	</select>
+	
+	<select id="selectPlaceList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPlaceList*/
+		SELECT 
+			A1000.TOTAL_RECORD_COUNT
+			, A1000.RNUM
+			, A1000.VLUN_PLC_SN
+			, A1000.VLUN_PLC_DV
+			, A1000.VLUN_PLC_DV_TXT
+			, A1000.VLUN_PLC_NA
+			, A1000.VLUN_PLC_FST
+			, A1000.VLUN_PLC_SCD
+			, A1000.VLUN_PLC_NM
+			, A1000.VLUN_PLC_ADDRESS
+			, A1000.VLUN_PLC_REPR
+			, A1000.VLUN_PLC_TEL_NO AS VLUN_PLC_TEL_NO
+			, A1000.PLC_MNGR_NM
+			, A1000.PLC_MNGR_TEL_NO AS PLC_MNGR_TEL_NO
+			, A1000.PLC_MNGR_EMAIL AS PLC_MNGR_EMAIL
+			, A1000.PLC_MNGR_CP_NO AS PLC_MNGR_CP_NO
+			, A1000.MAIN_ACT_AREA
+			, A1000.MAIN_TGT
+			, A1000.N_PAGE_NO
+			, NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY  TVPI.VLUN_PLC_SN DESC) AS RNUM
+							, TVPI.VLUN_PLC_SN
+							, TVPI.VLUN_PLC_DV
+							, CASE WHEN TVPI.VLUN_PLC_DV = 'P01' THEN '국내'
+								   ELSE '국외' END AS VLUN_PLC_DV_TXT
+							, CASE WHEN TVPI.VLUN_PLC_DV = 'P01' THEN '대한민국'
+								   ELSE TVPI.VLUN_PLC_FST END AS VLUN_PLC_NA
+							, TVPI.VLUN_PLC_FST
+							, TVPI.VLUN_PLC_SCD
+							, TVPI.VLUN_PLC_NM
+							, TVPI.VLUN_PLC_ADDRESS
+							, TVPI.VLUN_PLC_REPR
+							, TVPI.VLUN_PLC_TEL_NO
+							, TVPI.PLC_MNGR_NM
+							, TVPI.PLC_MNGR_TEL_NO
+							, TVPI.PLC_MNGR_EMAIL
+							, TVPI.PLC_MNGR_CP_NO
+							, TVPI.MAIN_ACT_AREA
+							, TVPI.MAIN_TGT
+						FROM
+							TRMV_VLUN_PLACE_I TVPI
+						WHERE 1=1
+							AND NVL(TVPI.USE_YN, 'N') = 'Y'
+							<if test='pSrchKeyword != null and pSrchKeyword != ""'>
+								<choose>
+									<when test='pSrchKeyKind == ""'>
+									AND (
+											UPPER(TVPI.VLUN_PLC_NM) LIKE '%' || UPPER(#{pSrchKeyword}) || '%'
+											OR UPPER(TVPI.VLUN_PLC_ADDRESS) LIKE '%' || UPPER(#{pSrchKeyword}) || '%'
+										)
+									</when>
+								</choose>
+							</if>
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<select id="selectPlace" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPlace*/
+		SELECT
+			 TVPI.VLUN_PLC_SN
+			, TVPI.VLUN_PLC_DV
+			, CASE WHEN TVPI.VLUN_PLC_DV = 'P01' THEN 'dom'
+				   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+			, CASE WHEN TVPI.VLUN_PLC_DV = 'P01' THEN '대한민국'
+				   ELSE TVPI.VLUN_PLC_FST END AS VLUN_PLC_NA
+			, TVPI.VLUN_PLC_NM
+			, TVPI.VLUN_PLC_ADDRESS
+			, TVPI.VLUN_PLC_REPR
+			, TVPI.VLUN_PLC_TEL_NO AS VLUN_PLC_TEL_NO
+			, TVPI.PLC_MNGR_NM
+			, TVPI.PLC_MNGR_TEL_NO AS PLC_MNGR_TEL_NO
+			, TVPI.PLC_MNGR_EMAIL AS PLC_MNGR_EMAIL
+			, TVPI.PLC_MNGR_CP_NO AS PLC_MNGR_CP_NO
+			, TVPI.MAIN_ACT_AREA
+			, TVPI.MAIN_TGT
+		FROM
+			TRMV_VLUN_PLACE_I TVPI
+		WHERE 1=1
+			AND NVL(TVPI.USE_YN, 'N') = 'Y'
+			AND TVPI.VLUN_PLC_SN = #{VLUN_PLC_SN}
+	</select>
+	
+	<insert id="insertPlan" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="VLUN_PLAN_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMV_VLUN_PLAN_I') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.plan.dao.PlanDAO.insertPlan*/
+		INSERT INTO TRMV_VLUN_PLAN_I (
+			VLUN_PLAN_SN 
+			, MLTR_ID
+			, ACT_FIELD 
+			, ACT_PLACE
+			, MAIN_CONTENTS
+			, VLUN_PLC_SN
+			, PLAN_STS
+			<if test='PLAN_STS == "AP"'>
+			, VLUN_APPL_DTM
+			</if>
+			, REG_DTM 
+			, REGR_ID
+			, VLUN_ACT_START 
+			, VLUN_ACT_END
+			, VLUN_TGT
+			, ACT_TIME_HR
+			, ACT_TIME_MN
+			, ORG_VLUN_PLAN_SN
+		) VALUES (
+			#{VLUN_PLAN_SN} 
+			, #{MLTR_ID}
+			, #{ACT_FIELD} 
+			, #{ACT_PLACE, jdbcType=VARCHAR}
+			, #{MAIN_CONTENTS, jdbcType=VARCHAR}
+			, #{VLUN_PLC_SN}
+			, #{PLAN_STS}
+			<if test='PLAN_STS == "AP"'>
+			, SYSDATE
+			</if>
+			, SYSDATE 
+			, #{EMP_NO}
+			, #{VLUN_ACT_START} 
+			, #{VLUN_ACT_END}
+			, #{VLUN_TGT, jdbcType=VARCHAR}
+			, #{ACT_TIME_HR}
+			, #{ACT_TIME_MN}
+			, #{VLUN_PLAN_SN}
+		)
+	</insert>
+	
+	<update id="updatePlan" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.updatePlan*/
+		UPDATE TRMV_VLUN_PLAN_I
+			SET MLTR_ID = #{MLTR_ID}
+				, VLUN_PLC_SN = #{VLUN_PLC_SN}
+				, ACT_FIELD  = #{ACT_FIELD}
+				, ACT_PLACE = #{ACT_PLACE, jdbcType=VARCHAR}
+				, MAIN_CONTENTS  = #{MAIN_CONTENTS, jdbcType=VARCHAR}
+				, PLAN_STS  = #{PLAN_STS}
+				<if test='PLAN_STS == "AP"'>
+				, VLUN_APPL_DTM = SYSDATE
+				</if>
+				, VLUN_ACT_START = #{VLUN_ACT_START}
+				, VLUN_ACT_END = #{VLUN_ACT_END}
+				, VLUN_TGT = #{VLUN_TGT, jdbcType=VARCHAR}
+				, ACT_TIME_HR = #{ACT_TIME_HR}
+				, ACT_TIME_MN = #{ACT_TIME_MN}
+				, UPDT_DTM = SYSDATE
+				, UPDR_ID  = #{EMP_NO}
+		WHERE
+			VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+			AND PLAN_STS = 'TP'
+	</update>
+	
+	<update id="confirmPlan" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.confirmPlan*/
+		UPDATE TRMV_VLUN_PLAN_I
+			SET PLAN_STS  			= #{PLAN_STS}
+				, RECEIPT_DTM 		= SYSDATE
+				, RECEIPT_REASON 	= #{RECEIPT_REASON}
+				, UPDT_DTM 			= SYSDATE
+				, UPDR_ID  			= #{EMP_NO}
+		WHERE
+			VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+			AND PLAN_STS = 'AP'
+	</update>
+
+	<select id="selectPlanDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectPlanDetail*/
+		SELECT 
+			TVPI.VLUN_PLAN_SN 
+			, TVPI.MLTR_ID
+			, TVPI.ACT_FIELD 
+			, DBMS_LOB.SUBSTR(TVPI.MAIN_CONTENTS) AS MAIN_CONTENTS
+			, TVPI.VLUN_PLC_SN 
+			, TVPI.PLAN_STS
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TVPI.PLAN_STS AND D10.CMMN_SN = '202111090000350') AS PLAN_STS_TXT
+			, TVPI.ACT_PLACE
+			, TVPI.VLUN_TGT
+			, TVPI.VLUN_ACT_START
+			, TVPI.VLUN_ACT_END
+			, TVPI.REGR_ID
+			, TVPI.ACT_TIME_HR
+			, TVPI.ACT_TIME_MN
+			, TO_CHAR(TVPI.RECEIPT_DTM, 'YYYY-MM-DD') AS RECEIPT_DTM
+			, DBMS_LOB.SUBSTR(TVPI.RECEIPT_REASON) AS RECEIPT_REASON
+			, TO_CHAR(NVL(TVPI.UPDT_DTM, TVPI.REG_DTM), 'YYYY-MM-DD') AS LATEST_UPDT
+			, (SELECT TMM.MNGR_NM FROM TRMZ_MNGR_M TMM WHERE TMM.MNGR_ID = NVL(TVPI.UPDR_ID, TVPI.REGR_ID)) AS LATEST_NM
+			, TVPI.ORG_VLUN_PLAN_SN
+			, TAPI.APPL_NM 
+			, TO_CHAR(TO_DATE(TAPI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			, TAPI.ADDR 
+			, TAPI.ADDR_DTL 
+			, TAPI.EMAIL EMAIL 
+			, F_GET_DEC_CP_NO(TAPI.CP_NO) CP_NO
+			, TAPI.MEMORG_SN
+			, TAPI.APPL_STS
+			, TAPI.PROC_STS 
+			, (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAPI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+			, PLACE.VLUN_PLC_DV
+			, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN 'dom'
+				   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+			, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN '대한민국'
+				   ELSE PLACE.VLUN_PLC_FST END AS VLUN_PLC_NA
+			, PLACE.VLUN_PLC_NM
+			, PLACE.VLUN_PLC_ADDRESS
+			, PLACE.VLUN_PLC_REPR
+			, PLACE.VLUN_PLC_TEL_NO AS VLUN_PLC_TEL_NO
+			, PLACE.PLC_MNGR_NM
+			, PLACE.PLC_MNGR_TEL_NO AS PLC_MNGR_TEL_NO
+			, PLACE.PLC_MNGR_EMAIL AS PLC_MNGR_EMAIL
+			, PLACE.PLC_MNGR_CP_NO AS PLC_MNGR_CP_NO
+			, PLACE.MAIN_ACT_AREA
+			, PLACE.MAIN_TGT
+		FROM
+			TRMV_VLUN_PLAN_I TVPI
+		INNER JOIN TRMM_APPL_ACPT_I TAAI 
+			ON TAAI.MLTR_ID = TVPI.MLTR_ID
+		INNER JOIN TRMM_APPL_I TAPI
+			ON TAPI.APPL_SN = TAAI.APPL_SN
+		INNER JOIN TRMV_VLUN_PLACE_I PLACE
+			ON PLACE.VLUN_PLC_SN = TVPI.VLUN_PLC_SN 
+		WHERE TVPI.VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+	</select>
+	
+	<delete id="deletePlan" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.deletePlan*/
+		DELETE
+			TRMV_VLUN_PLAN_I
+		WHERE
+			VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+	</delete>
+	
+	<insert id="selectInsertPlan" parameterType="KSPOMap">
+		/*org.kspo.web.plan.dao.PlanDAO.selectInsertPlan*/
+		INSERT INTO TRMV_VLUN_PLAN_I (
+			VLUN_PLAN_SN 
+			, MLTR_ID
+			, ACT_FIELD 
+			, ACT_PLACE
+			, MAIN_CONTENTS
+			, VLUN_PLC_SN
+			, PLAN_STS
+			, REG_DTM 
+			, REGR_ID
+			, VLUN_ACT_START 
+			, VLUN_ACT_END
+			, VLUN_TGT 
+			, ACT_TIME_HR
+			, ACT_TIME_MN
+			, ORG_VLUN_PLAN_SN
+		)
+		SELECT 
+			(SELECT F_GET_SEQ('TRMV_VLUN_PLAN_I') FROM DUAL) AS VLUN_PLAN_SN
+			, TVPI.MLTR_ID
+			, TVPI.ACT_FIELD 
+			, TVPI.ACT_PLACE
+			, TVPI.MAIN_CONTENTS
+			, TVPI.VLUN_PLC_SN
+			, 'TP' AS PLAN_STS
+			, SYSDATE AS REG_DTM
+			, #{EMP_NO} AS REGR_ID
+			, TVPI.VLUN_ACT_START 
+			, TVPI.VLUN_ACT_END
+			, TVPI.VLUN_TGT
+			, TVPI.ACT_TIME_HR
+			, TVPI.ACT_TIME_MN
+			, #{VLUN_PLAN_SN}
+		FROM
+			TRMV_VLUN_PLAN_I TVPI
+		WHERE
+			TVPI.VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+			AND TVPI.PLAN_STS = 'AP' 
+	</insert>
+	
+	<select id="selectPlanExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		SELECT
+			COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+			, ROW_NUMBER() OVER(ORDER BY  A10.VLUN_PLAN_SN DESC) AS RNUM
+			, A10.VLUN_PLAN_SN
+			, A10.ACT_FIELD
+			, A10.ACT_PREARNGE_DT
+			, A10.MAIN_CONTENTS
+			, A10.PLAN_STS
+			, A10.ACT_PLACE
+			, CASE WHEN A10.VLUN_APPL_DTM IS NULL THEN '' ELSE TO_CHAR(A10.VLUN_APPL_DTM, 'YYYY-MM-DD') END AS VLUN_APPL_DTM
+			, A10.RECEIPT_DTM
+			, A10.RECEIPT_REASON
+			, TO_CHAR(A10.REG_DTM, 'YYYY-MM-DD') AS REG_DTM 
+			, A10.REGR_ID
+			, A10.UPDT_DTM
+			, A10.UPDR_ID
+			, A10.VLUN_TGT_TXT
+			, TO_CHAR(TO_DATE(A10.VLUN_ACT_START, 'YYYYMMDD'), 'YYYY-MM-DD') AS VLUN_ACT_START
+			, TO_CHAR(TO_DATE(A10.VLUN_ACT_END, 'YYYYMMDD'), 'YYYY-MM-DD') AS VLUN_ACT_END
+			, F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',A10.APPL_NM) AS APPL_NM
+			, F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',A10.BRTH_DT) AS BRTH_DT
+			, A10.MEMORG_NM
+			, A10.VLUN_PLC_NM
+			, A10.VLUN_PLC_DV_TYPE
+			, A10.VLUN_PLC_DV_TXT
+			, A10.GAME_CD
+			, A10.GAME_CD_NM
+			, A10.VLUN_PLC_ADDRESS
+			, A10.PLC_MNGR_NM
+			, F_GET_MASK(#{USER_DV}, #{gMenuSn},'HP', A10.PLC_MNGR_TEL_NO) AS PLC_MNGR_TEL_NO
+			, A10.PLC_MNGR_EMAIL AS PLC_MNGR_EMAIL
+			, F_GET_MASK(#{USER_DV}, #{gMenuSn},'HP', A10.PLC_MNGR_CP_NO) AS PLC_MNGR_CP_NO
+			, A10.MEMORG_SN
+		FROM (
+				SELECT
+					TVPI.VLUN_PLAN_SN 
+					, (SELECT ACT_FIELD_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D ACT_FIELD_CODE WHERE ACT_FIELD_CODE.ALT_CODE = TVPI.ACT_FIELD AND ACT_FIELD_CODE.CMMN_SN = '202111050000342') ACT_FIELD
+					, TVPI.ACT_PREARNGE_DT 
+					, DBMS_LOB.SUBSTR(TVPI.MAIN_CONTENTS) AS MAIN_CONTENTS
+					, (SELECT PLAN_STS_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D PLAN_STS_CODE WHERE PLAN_STS_CODE.ALT_CODE = TVPI.PLAN_STS AND PLAN_STS_CODE.CMMN_SN = '202111090000350') AS PLAN_STS 
+					, TVPI.ACT_PLACE 
+					, TVPI.VLUN_APPL_DTM
+					, TVPI.RECEIPT_DTM
+					, DBMS_LOB.SUBSTR(TVPI.RECEIPT_REASON) AS RECEIPT_REASON
+					, TVPI.REG_DTM
+					, TVPI.REGR_ID 
+					, TVPI.UPDT_DTM 
+					, TVPI.UPDR_ID
+					, (SELECT VLUN_TGT_CODE.CNTNT_FST FROM TRMZ_CMMN_CODE_D VLUN_TGT_CODE WHERE VLUN_TGT_CODE.ALT_CODE = TVPI.VLUN_TGT AND VLUN_TGT_CODE.CMMN_SN = '202111150000351') AS VLUN_TGT_TXT 
+					, TVPI.VLUN_ACT_START
+					, TVPI.VLUN_ACT_END
+					, TAI.APPL_NM 
+					, TAI.BRTH_DT
+					, TMMI.MEMORG_NM
+					, PLACE.VLUN_PLC_NM
+					, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN 'dom'
+							   ELSE 'abr' END AS VLUN_PLC_DV_TYPE
+					, CASE WHEN PLACE.VLUN_PLC_DV = 'P01' THEN '국내'
+							   ELSE '국외' END AS VLUN_PLC_DV_TXT
+					, TAI.GAME_CD
+					, (SELECT TMMI.CNTNT_FST FROM TRMZ_CMMN_CODE_D TMMI WHERE TMMI.ALT_CODE = TAI.GAME_CD AND TMMI.CMMN_SN = '202111050000341') GAME_CD_NM
+					, PLACE.VLUN_PLC_ADDRESS
+					, PLACE.PLC_MNGR_NM
+					, PLACE.PLC_MNGR_TEL_NO
+					, PLACE.PLC_MNGR_EMAIL
+					, PLACE.PLC_MNGR_CP_NO
+					, TAI.MEMORG_SN
+				FROM
+					TRMV_VLUN_PLAN_I TVPI
+				INNER JOIN TRMM_APPL_ACPT_I TAAI 
+					ON TVPI.MLTR_ID = TAAI.MLTR_ID
+				INNER JOIN TRMM_APPL_I TAI
+					ON TAI.APPL_SN  = TAAI.APPL_SN 
+				INNER JOIN TRMV_VLUN_PLACE_I PLACE
+					ON PLACE.VLUN_PLC_SN = TVPI.VLUN_PLC_SN
+				INNER JOIN TRMZ_MEMORG_MNG_I TMMI
+					ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+				WHERE 1=1
+				<choose>
+					<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+						AND TVPI.PLAN_STS != 'TP'
+					</when>
+					<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+						AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+					</when>
+				</choose>
+				<if test='srchRegDtmStart != null and srchRegDtmStart != "" and srchRegDtmEnd != null and srchRegDtmEnd != ""'>
+				AND TVPI.REG_DTM <![CDATA[>=]]> TO_DATE(#{srchRegDtmStart}||'000000','YYYYMMDDHH24MISS') AND TVPI.REG_DTM <![CDATA[<=]]> TO_DATE(#{srchRegDtmEnd}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='VLUN_PLAN_SN != null and VLUN_PLAN_SN != ""'>
+				AND TVPI.VLUN_PLAN_SN = #{VLUN_PLAN_SN}
+				</if>					
+				<if test='srchGameCd != null and srchGameCd != ""'>
+				AND TAI.GAME_CD = #{srchGameCd} 
+				</if>
+				<if test='srchPalnStsCd != null and srchPalnStsCd != ""'>
+				AND TVPI.PLAN_STS = #{srchPalnStsCd}
+				</if>
+				<if test='srchMemorgCd != null and srchMemorgCd != ""'>
+				AND TAI.MEMORG_SN = #{srchMemorgCd}
+				</if>
+		) A10
+		WHERE 1=1
+		<if test='srchVlunPlcDvType != null and srchVlunPlcDvType != ""'>
+		AND A10.VLUN_PLC_DV_TYPE = #{srchVlunPlcDvType}
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			<choose>
+				<when test='keyKind == ""'>
+				AND (
+						UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+						OR UPPER(A10.VLUN_PLC_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+						OR A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+					)
+				</when>
+				<when test='keyKind == "USER_NAME"'>
+				AND (
+						UPPER(A10.APPL_NM) LIKE '%' || UPPER(#{keyword}) || '%'
+					)
+				</when>
+				<when test='keyKind == "GAME_NAME"'>
+				AND (
+						A10.GAME_CD_NM LIKE '%' || #{keyword} || '%'
+					)
+				</when>
+			</choose>
+		</if>
+		<if test='srchVlunActDateType != null and srchVlunActDateType != ""'>
+			<choose>
+				<when test='srchVlunActDateType == "START"'>
+				AND A10.VLUN_ACT_START BETWEEN #{srchVlunActDateStart} AND #{srchVlunActDateEnd}
+				</when>
+				<when test='srchVlunActDateType == "END"'>
+				AND A10.VLUN_ACT_END BETWEEN #{srchVlunActDateStart} AND #{srchVlunActDateEnd}
+				</when>
+			</choose>
+		</if>
+	</select>
+	
+	<select id="selectPlanDateList" parameterType="KSPOMap" resultType="KSPOMap">
+			SELECT TO_CHAR(TO_DATE(#{VLUN_ACT_START}) + LEVEL -1,'YYYYMMDD') PLAN_DT FROM DUAL 
+			CONNECT BY LEVEL <![CDATA[<=]]> ((TO_DATE(#{VLUN_ACT_END})+1) - TO_DATE(#{VLUN_ACT_START}))
+	</select>
+	
+	<!-- 공익복무 일괄 상태 변경 -->
+	<update id="updateAllPlanStsJs" parameterType="KSPOMap">
+		/*org.kspo.web.plan.updateAllPlanStsJs*/
+		UPDATE TRMV_VLUN_PLAN_I
+			SET PLAN_STS  			= #{PLAN_STS}
+				, RECEIPT_DTM 		= SYSDATE
+				<if test='RECEIPT_All_REASON != null and RECEIPT_All_REASON != ""'>
+				, RECEIPT_REASON 	= #{RECEIPT_All_REASON, jdbcType=VARCHAR}
+				</if>
+				, UPDT_DTM 			= SYSDATE
+				, UPDR_ID  			= #{EMP_NO}
+		WHERE	VLUN_PLAN_SN IN
+		<foreach collection="mstChk" item="VLUN_PLAN_SN" open="(" close=")" separator=",">
+			#{VLUN_PLAN_SN}
+		</foreach>
+			AND PLAN_STS = 'AP'
+	</update>
+</mapper>

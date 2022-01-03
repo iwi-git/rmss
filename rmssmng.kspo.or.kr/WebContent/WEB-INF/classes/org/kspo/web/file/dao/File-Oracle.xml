@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.file.dao.FileDAO">
+
+	<!-- 파일 단건 저장 -->
+	<insert id="insertFile" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="fileSn" order="BEFORE">
+		SELECT F_GET_SEQ('TRMZ_FILE_F') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.File.insertFile*/
+		INSERT INTO TRMZ_FILE_F(
+			FILE_SN
+			,REFR_TABLE_NM
+			,REFR_KEY
+			,FILE_GB_CD
+			,FILE_PATH
+			,FILE_NM
+			,FILE_ORGIN_NM
+			,REG_DTM
+			,REGR_ID
+			,UPDT_DTM
+			,UPDR_ID
+			,REFR_COL_NM
+			,REFR_SEQ
+		)VALUES(
+			#{fileSn}
+			,#{REFR_TABLE_NM}
+			,#{REFR_KEY}
+			,#{FILE_GB_CD}
+			,#{FILE_PATH}
+			,#{FILE_NM}
+			,#{FILE_ORGIN_NM}
+			, SYSDATE
+			, #{EMP_NO}
+			, SYSDATE
+			, #{EMP_NO}
+			,#{REFR_COL_NM}
+			,(SELECT NVL(MAX(REFR_SEQ),0) + 1 FROM TRMZ_FILE_F WHERE REFR_KEY  = #{REFR_KEY})
+		)
+	</insert>
+	
+	<!-- 파일 다건 저장 -->
+	<insert id="insertFileList" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="fileSn" order="BEFORE">
+		SELECT F_GET_SEQ('TRMZ_FILE_F') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.File.insertFileList*/
+		INSERT INTO TRMZ_FILE_F(
+			FILE_SN
+			,REFR_TABLE_NM
+			,REFR_KEY
+			,FILE_GB_CD
+			,FILE_PATH
+			,FILE_NM
+			,FILE_ORGIN_NM
+			,REG_DTM
+			,REGR_ID
+			,UPDT_DTM
+			,UPDR_ID
+			,REFR_COL_NM
+			,REFR_SEQ
+		)VALUES(
+			#{fileSn}
+			,#{REFR_TABLE_NM}
+			,#{REFR_KEY}
+			,#{FILE_GB_CD}
+			,#{FILE_PATH}
+			,#{FILE_NM}
+			,#{FILE_ORGIN_NM}
+			, SYSDATE
+			, #{EMP_NO}
+			, SYSDATE
+			, #{EMP_NO}
+			,#{REFR_COL_NM}
+			,(SELECT NVL(MAX(REFR_SEQ),0) + 1 FROM TRMZ_FILE_F WHERE REFR_KEY  = #{REFR_KEY})
+		)
+	</insert>
+	
+	<!-- 파일 다건 조회 -->
+	<select id="selectFileList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*kr.co.iwi.com.File.selectFileList*/
+		SELECT  FILE_SN
+				,REFR_TABLE_NM
+				,REFR_KEY
+				,FILE_GB_CD
+				,FILE_PATH
+				,FILE_NM
+				,FILE_ORGIN_NM
+				,REG_DTM
+				,REGR_ID
+				,UPDT_DTM
+				,UPDR_ID
+				,REFR_COL_NM
+		FROM    TRMZ_FILE_F
+		WHERE   REFR_TABLE_NM  = #{REFR_TABLE_NM}
+		AND     REFR_KEY = #{REFR_KEY}
+		AND     REFR_COL_NM = #{REFR_COL_NM}
+	</select>
+	
+	<!-- 파일 단건 조회 -->
+	<select id="selectFile" parameterType="KSPOMap" resultType="KSPOMap">
+		/*kr.co.iwi.com.File.selectFile*/
+		SELECT  FILE_SN
+				, REFR_TABLE_NM
+				, REFR_KEY
+				, REFR_COL_NM
+				, FILE_GB_CD
+				, FILE_PATH
+				, FILE_NM
+				, FILE_ORGIN_NM
+				, REG_DTM
+				, REGR_ID
+				, UPDT_DTM
+				, UPDR_ID
+		FROM    TRMZ_FILE_F
+		WHERE   FILE_SN  = #{FILE_SN}
+	</select>
+	
+	<!-- 장학금 사용내역 파일 다건 조회 -->
+	<select id="selectCardDetailFileList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.File.selectCardDetailFileList*/
+		SELECT  FILE_SN
+				, REFR_TABLE_NM
+				, REFR_KEY
+				, FILE_GB_CD
+				, FILE_PATH
+				, FILE_NM
+				, FILE_ORGIN_NM
+				, REG_DTM
+				, REGR_ID
+				, UPDT_DTM
+				, UPDR_ID
+				, REFR_COL_NM
+		FROM    TRMZ_FILE_F
+		WHERE   REFR_KEY = #{REFR_KEY}
+		AND		REFR_TABLE_NM = #{REFR_TABLE_NM}
+	</select>
+	
+	<!-- 파일삭제 -->
+	<delete id="delFile" parameterType="KSPOMap">
+		/*org.kspo.web.File.delFile*/
+		DELETE 
+		FROM	TRMZ_FILE_F
+		WHERE	FILE_SN = #{FILE_SN}
+	</delete>
+	
+	<!-- 등록한 문서에대한 파일 삭제 -->
+	<delete id="delMFile" parameterType="KSPOMap">
+		/*org.kspo.web.File.delMFile*/
+		DELETE 
+		FROM	TRMZ_FILE_F
+		WHERE	REFR_KEY = #{REFR_KEY}
+		AND		REFR_TABLE_NM = #{REFR_TABLE_NM}
+		AND		REFR_COL_NM = #{REFR_COL_NM}
+	</delete>
+	
+	<!-- 파일 참조 그룹키 생성 -->
+	<select id="selectFileGrpRefrKey" resultType="String">
+		/*org.kspo.web.File.selectFileGrpRefrKey*/
+		SELECT F_GET_SEQ('TRMZ_FILE_F_GRP') FROM DUAL
+	</select>
+	
+</mapper>

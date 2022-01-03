@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.email.dao.EmailDAO">
+
+	<!-- 메일 템플릿 조회 -->
+	<select id="selectMailTemplate" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.Email.selectMailTemplate*/
+		SELECT	MAIL_TEMP_SN
+				,TEMP_TYPE
+				,TEMP_TITLE
+				,TEMP_CONTENTS
+				,USE_YN
+		FROM
+				TRMZ_MAIL_TEMPLATE_I
+		WHERE	USE_YN = 'Y'
+		AND		TEMP_TYPE = #{TEMP_TYPE}
+	</select>
+	
+	<insert id="insertEmailLog"  parameterType="KSPOMap">
+		INSERT INTO TRMZ_EMAIL_L(
+		  	EMAIL_LOG_SN
+			,EMAIL_TYPE
+			,SENDER_NM
+			,SENDER_EMAIL
+			,RECEIVER_NM
+			,RECEIVER_EMAIL
+			,EMAIL_TITLE
+			,EMAIL_CONTENTS
+			,SEND_YN
+			,REG_DTM
+			,REG_YMD
+			,REG_TM
+		)VALUES(
+		 	F_GET_SEQ('TRMZ_EMAIL_L')
+			,#{EMAIL_TYPE, jdbcType=VARCHAR}
+			,#{sendNm, jdbcType=VARCHAR}
+			,#{sendEmail, jdbcType=VARCHAR}
+			,#{recNm, jdbcType=VARCHAR}
+			,#{recEmail, jdbcType=VARCHAR}
+			,#{title, jdbcType=VARCHAR}
+			,#{sendContents, jdbcType=VARCHAR}
+			,'N'
+			,SYSDATE
+			,TO_CHAR(SYSDATE, 'YYYYMMDD')
+			,TO_CHAR(SYSDATE, 'HH24MISS')
+		)
+	</insert>
+
+</mapper>

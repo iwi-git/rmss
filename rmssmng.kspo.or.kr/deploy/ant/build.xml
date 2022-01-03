@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="rmssmng" default="banner" basedir=".">
+
+	<!-- 0. set global properties for this build -->
+  	<property file="./build.properties"/>
+  	<property environment="set"/>
+  	<property name="jeus.home" value="${set.JEUS_HOME}"/>
+  	<property name="java.home" value="${set.JAVA_HOME}"/>
+
+	<target name="banner">
+	    <echo>+--------------------------------------------------+</echo>
+	    <echo>+	  Building ${ant.project.name} webpages by yunkidon@kspo.or.kr</echo>
+	    <echo>+	  deploying to ${ant.project.name} </echo>
+	    <echo>+--------------------------------------------------+</echo>
+	    <echo message="BuildName: ${ant.project.name}"/>
+	    <echo message="BuildHome: ${basedir}"/>
+	    <echo message="BuildFile: ${ant.file}"/>
+	    <echo message="BuildJVM:  ${ant.java.version}"/>
+	    <echo message="JAVA_HOME: ${java.home}"/>
+	  	<echo message="JEUS_HOME: ${jeus.home}"/>
+  	</target>
+	
+	<!-- rmssmng -->
+	  	<target name="rmssmng" depends="banner" description="rmss 디렉토리로 복사">
+	    	<copy todir="${DEFAULT_APP}">
+	      		<fileset dir="../../WEBContent">
+		      		<include name="**/*.jsp"/>
+		      		<include name="**/*.js"/>
+		      		<include name="**/*.css"/>
+		      		<include name="**/*.jpg"/>
+		        	<include name="**/*.png"/>      	
+		      		<include name="**/*.gif"/>
+		      		<include name="**/*.xml"/>
+		      		<include name="**/*.html"/>
+		      		<include name="**/*.htm"/>
+		      		<include name="**/*.swf"/>
+		      		<include name="**/*.jar"/>
+	      			<include name="**/*.ico"/>
+	      			<include name="**/*.tld"/>
+	      			<include name="**/*.dtd"/>
+		      		<include name="**/*.zip"/>
+	      			<include name="**/*.eot"/>
+	      			<include name="**/*.woff"/>
+	      			<exclude name="**/javaee.jar"/>
+	      			<include name="**/*web.xml"/>
+				</fileset>
+			</copy>
+	  		<copy todir="${DEFAULT_APP}/WEB-INF/classes">
+	      		<fileset dir="../../WebContent/WEB-INF/classes">
+	        		<include name="**/*.class"/>
+	      		</fileset>
+	    	</copy>
+	  		<copy todir="${DEFAULT_APP}/WEB-INF/classes">
+	      		<fileset dir="../../src">
+	        		<include name="**/*.xml"/>      			
+	        		<include name="**/*.properties"/>
+	      			<include name="**/log4j2.xml"/>
+	      		</fileset>
+	    	</copy>
+	  	</target>
+
+	<!--clear-->
+	<target name="clean" depends="banner">
+		<delete dir="${DEFAULT_APP}/WEB-INF/classes"/>
+		<delete dir="${DEFAULT_APP}/WEB-INF/lib"/>
+		<delete dir="${DEFAULT_APP}/WEB-INF/config"/>
+		<delete dir="${DEFAULT_APP}/WEB-INF/tld"/>
+		<delete dir="${DEFAULT_APP}/WEB-INF/jsp"/>
+		<delete dir="${DEFAULT_APP}/common"/>		
+	</target>
+</project>

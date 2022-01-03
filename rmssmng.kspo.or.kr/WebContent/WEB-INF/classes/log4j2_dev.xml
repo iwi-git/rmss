@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="WARN">
+    <properties>
+        <property name="log_path">c:/logs</property>    
+        <property name="file_name">rmssmng.log</property>
+        <property name="file_pattern">rmssmng-%d{yyyy-MM-dd}-%i.log</property>
+        <property name="msg_pattern">%d [%t] %-5level %logger{36} - %msg%n</property>
+    </properties>
+    <appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${msg_pattern}" />
+        </Console>
+        <RollingRandomAccessFile name="file" fileName="${log_path}/${file_name}" filePattern="${log_path}/${file_pattern}" immediateFlush="false" append="true" ignoreExceptions="false">
+            <PatternLayout pattern="${msg_pattern}" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB" /> <!-- 이 용량이 초과되면 아래 DefaultRolloverStrategy 정책만큼 넘버링 -->
+                <TimeBasedTriggeringPolicy/>      
+            </Policies>
+            <DefaultRolloverStrategy max="100" fileIndex="min" /><!-- 0부터 100개 까지만 생성 100개 초과되면 파일이 더생성안됨 -->
+        </RollingRandomAccessFile>
+	</appenders>	
+	<loggers>
+	    <AsyncRoot level="DEBUG" additivity="false" includeLocation="true">
+	        <appender-ref ref="file" />
+	        <appender-ref ref="console" />			
+	    </AsyncRoot>
+     	<AsyncLogger name="org.kspo" level="DEBUG" additivity="false" includeLocation="true">
+        	<appender-ref ref="file" />
+	        <appender-ref ref="console" />				
+     	</AsyncLogger>
+	    <AsyncLogger name="org.springframework" level="INFO" additivity="false" includeLocation="true">
+	        <appender-ref ref="file" />
+	        <appender-ref ref="console" />				
+	    </AsyncLogger>
+	    <AsyncLogger name="org.apache" level="INFO" additivity="false" includeLocation="true">
+	        <appender-ref ref="file" />
+	        <appender-ref ref="console" />				
+	    </AsyncLogger>
+	    <AsyncLogger name="org.mybatis" level="INFO" additivity="false" includeLocation="true">
+	        <appender-ref ref="file" />
+	        <appender-ref ref="console" />				
+	    </AsyncLogger>
+	    <!-- Query Loggers --> 
+	    <AsyncLogger name="jdbc" level="WARN" additivity="false" includeLocation="true">
+	        <appender-ref ref="file" />
+	        <appender-ref ref="console" />				
+	    </AsyncLogger>
+ 		  
+ 	</loggers>
+<typeAliases></typeAliases>
+</configuration>

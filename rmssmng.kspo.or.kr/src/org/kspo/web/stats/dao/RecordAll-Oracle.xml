@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.stats.dao.RecordAllDAO">
+	
+	<!-- 공익복무실적 목록 조회 -->
+	<select id="selectRecordAllList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.stats.dao.RecordAllDAO.selectRecordAllList*/
+		SELECT 
+			NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+			, NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+			, NVL(#{pageSize},10) AS PAGE_SIZE
+			, A1000.TOTAL_RECORD_COUNT
+			, A1000.RNUM
+			, A1000.N_PAGE_NO
+			, A1000.MLTR_ID
+			, TO_CHAR(TO_DATE(A1000.ADDM_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS ADDM_DT
+			, A1000.APPL_SN
+			, A1000.APPL_NM
+			, A1000.VLUN_DUTY_HR
+			, TO_CHAR(TO_DATE(A1000.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			, A1000.GAME_CD
+			, (SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A1000.GAME_CD AND A.CMMN_SN = '202111050000341') AS GAME_NM
+			, TO_CHAR(TO_DATE(A1000.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS EXPR_DT
+			, TO_CHAR(TO_DATE(A1000.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS RSVT_DT
+			, A1000.MEMORG_SN
+			, A1000.MEMORG_NM
+			, TRUNC(A1000.FINAL_ACT_TIME_FORMAT_MN / 60) AS TOT_FINAL_ACT_TIME_HR
+			, MOD(A1000.FINAL_ACT_TIME_FORMAT_MN, 60) AS TOT_FINAL_ACT_TIME_MN
+			, A1000.TOT_FINAL_WP_MV_TIME
+			, (TRUNC(A1000.FINAL_ACT_TIME_FORMAT_MN / 60) + A1000.TOT_FINAL_WP_MV_TIME) AS TOT_FINAL_TIME_HR
+			, MOD(A1000.FINAL_ACT_TIME_FORMAT_MN, 60) AS TOT_FINAL_TIME_MN
+			, TRUNC( ((A1000.VLUN_DUTY_HR * 60) - (A1000.FINAL_ACT_TIME_FORMAT_MN) - (A1000.TOT_FINAL_WP_MV_TIME * 60)) / 60) AS FINAL_REMAIN_TIME_HR
+			, MOD( ((A1000.VLUN_DUTY_HR * 60) - (A1000.FINAL_ACT_TIME_FORMAT_MN) - (A1000.TOT_FINAL_WP_MV_TIME * 60)), 60) AS FINAL_REMAIN_TIME_MN
+		FROM (
+				SELECT
+					A100.*
+					, CEIL(A100.RNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+				FROM (
+						SELECT 
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY A10.MLTR_ID DESC) AS RNUM
+							, A10.MLTR_ID 
+							, A10.ADDM_DT
+							, A10.APPL_SN 
+							, A10.APPL_NM
+							, A10.VLUN_DUTY_HR 
+							, A10.BRTH_DT
+							, A10.GAME_CD
+							, A10.EXPR_DT
+							, A10.RSVT_DT
+							, A10.MEMORG_SN
+							, A10.MEMORG_NM
+							, NVL(SUM( (NVL(A10.TOT_AFT_ACT_TIME_HR, A10.TOT_PC_ACT_TIME_HR) * 60) + NVL(A10.TOT_AFT_ACT_TIME_MN, A10.TOT_PC_ACT_TIME_MN) ), 0) AS FINAL_ACT_TIME_FORMAT_MN
+							, NVL(SUM( NVL(A10.TOT_AFT_WP_MV_TIME, A10.TOT_PC_WP_MV_TIME)), 0) AS TOT_FINAL_WP_MV_TIME
+						FROM (
+								SELECT 
+									TAAI.MLTR_ID
+									, TAAI.ADDM_DT
+									, TAI.APPL_SN
+									, TAI.APPL_NM
+									, TAI.VLUN_DUTY_HR
+									, TAI.BRTH_DT
+									, TAI.GAME_CD
+									, TAI.EXPR_DT
+									, TAI.RSVT_DT
+									, TAI.MEMORG_SN
+									, TMMI.MEMORG_NM
+									, TVRM.TOT_PC_ACT_TIME_HR
+									, TVRM.TOT_PC_ACT_TIME_MN
+									, TVRM.TOT_PC_WP_MV_TIME 
+									, TVRM.TOT_AFT_ACT_TIME_HR
+									, TVRM.TOT_AFT_ACT_TIME_MN
+									, TVRM.TOT_AFT_WP_MV_TIME 
+									, TVRM.RECD_STS
+									, TVPI.PLAN_STS
+									, TAI.APPL_STS
+									, TAI.PROC_STS 
+								FROM TRMM_APPL_I TAI 
+								INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+									ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+								LEFT OUTER JOIN TRMM_APPL_ACPT_I TAAI 
+									ON TAAI.APPL_SN = TAI.APPL_SN 
+								LEFT OUTER JOIN TRMV_VLUN_PLAN_I TVPI 
+									ON TVPI.MLTR_ID = TAAI.MLTR_ID 
+								LEFT OUTER JOIN TRMV_VLUN_RECD_M TVRM 
+									ON TVRM.VLUN_PLAN_SN = TVPI.VLUN_PLAN_SN 
+								WHERE 1=1
+									AND TVRM.RECD_STS = 'MY'
+									AND TVPI.PLAN_STS = 'KY'
+									AND TAI.APPL_STS = 'MY'
+								<if test='srchYear != null and srchYear != ""'>
+									AND TAI.APPL_DT BETWEEN #{srchYear}||'0101' AND #{srchYear}||'1231'
+								</if>
+								<choose>
+									<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+										<if test='srchMemorgSn != null and srchMemorgSn != ""'>
+										AND TAI.MEMORG_SN = #{srchMemorgSn}
+										</if>
+										<if test='srchGameCd != null and srchGameCd != ""'>
+										AND TAI.GAME_CD = #{srchGameCd}
+										</if>
+									</when>
+									<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+										AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+										AND TAI.GAME_CD = #{SESSION_GAME_CD}
+									</when>
+								</choose>
+						) A10
+						WHERE 1=1 
+						GROUP BY A10.MLTR_ID, A10.ADDM_DT, A10.APPL_SN, A10.APPL_NM, A10.VLUN_DUTY_HR, A10.BRTH_DT, A10.GAME_CD, A10.EXPR_DT, A10.RSVT_DT, A10.MEMORG_SN, A10.MEMORG_NM
+				) A100
+		) A1000
+		WHERE 1=1
+			AND A1000.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+	
+	<!-- 공익복무실적-총괄 엑셀다운로드 -->
+	<select id="selectRecordAllExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.stats.dao.RecordAllDAO.selectRecordAllExcelList*/
+		SELECT 
+			A1000.TOTAL_RECORD_COUNT
+			, A1000.RNUM
+			, A1000.MLTR_ID
+			, TO_CHAR(TO_DATE(A1000.ADDM_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS ADDM_DT
+			, A1000.APPL_SN
+			, A1000.APPL_NM
+			,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',A1000.APPL_NM) B_APPL_NM
+			, A1000.VLUN_DUTY_HR
+			, TO_CHAR(TO_DATE(A1000.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+			,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',A1000.BRTH_DT) B_BRTH_DT			
+			, A1000.GAME_CD
+			, (SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = A1000.GAME_CD AND A.CMMN_SN = '202111050000341') AS GAME_NM
+			, TO_CHAR(TO_DATE(A1000.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS EXPR_DT
+			, TO_CHAR(TO_DATE(A1000.EXPR_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS RSVT_DT
+			, A1000.MEMORG_SN
+			, A1000.MEMORG_NM
+			, TRUNC(A1000.FINAL_ACT_TIME_FORMAT_MN / 60) AS TOT_FINAL_ACT_TIME_HR
+			, MOD(A1000.FINAL_ACT_TIME_FORMAT_MN, 60) AS TOT_FINAL_ACT_TIME_MN
+			, A1000.TOT_FINAL_WP_MV_TIME
+			, (TRUNC(A1000.FINAL_ACT_TIME_FORMAT_MN / 60) + A1000.TOT_FINAL_WP_MV_TIME) AS TOT_FINAL_TIME_HR
+			, MOD(A1000.FINAL_ACT_TIME_FORMAT_MN, 60) AS TOT_FINAL_TIME_MN
+			, TRUNC( ((A1000.VLUN_DUTY_HR * 60) - (A1000.FINAL_ACT_TIME_FORMAT_MN) - (A1000.TOT_FINAL_WP_MV_TIME * 60)) / 60) AS FINAL_REMAIN_TIME_HR
+			, MOD( ((A1000.VLUN_DUTY_HR * 60) - (A1000.FINAL_ACT_TIME_FORMAT_MN) - (A1000.TOT_FINAL_WP_MV_TIME * 60)), 60) AS FINAL_REMAIN_TIME_MN
+		FROM (
+				SELECT
+					A100.*
+				FROM (
+						SELECT 
+							COUNT(*) OVER() AS TOTAL_RECORD_COUNT
+							, ROW_NUMBER() OVER(ORDER BY A10.MLTR_ID DESC) AS RNUM
+							, A10.MLTR_ID 
+							, A10.ADDM_DT
+							, A10.APPL_SN 
+							, A10.APPL_NM
+							, A10.VLUN_DUTY_HR 
+							, A10.BRTH_DT
+							, A10.GAME_CD
+							, A10.EXPR_DT
+							, A10.RSVT_DT
+							, A10.MEMORG_SN
+							, A10.MEMORG_NM
+							, NVL(SUM( (NVL(A10.TOT_AFT_ACT_TIME_HR, A10.TOT_PC_ACT_TIME_HR) * 60) + NVL(A10.TOT_AFT_ACT_TIME_MN, A10.TOT_PC_ACT_TIME_MN) ), 0) AS FINAL_ACT_TIME_FORMAT_MN
+							, NVL(SUM( NVL(A10.TOT_AFT_WP_MV_TIME, A10.TOT_PC_WP_MV_TIME)), 0) AS TOT_FINAL_WP_MV_TIME
+						FROM (
+								SELECT 
+									TAAI.MLTR_ID
+									, TAAI.ADDM_DT
+									, TAI.APPL_SN
+									, TAI.APPL_NM
+									, TAI.VLUN_DUTY_HR
+									, TAI.BRTH_DT
+									, TAI.GAME_CD
+									, TAI.EXPR_DT
+									, TAI.RSVT_DT
+									, TAI.MEMORG_SN
+									, TMMI.MEMORG_NM
+									, TVRM.TOT_PC_ACT_TIME_HR
+									, TVRM.TOT_PC_ACT_TIME_MN
+									, TVRM.TOT_PC_WP_MV_TIME 
+									, TVRM.TOT_AFT_ACT_TIME_HR
+									, TVRM.TOT_AFT_ACT_TIME_MN
+									, TVRM.TOT_AFT_WP_MV_TIME 
+									, TVRM.RECD_STS
+									, TVPI.PLAN_STS
+									, TAI.APPL_STS
+									, TAI.PROC_STS 
+								FROM TRMM_APPL_I TAI 
+								INNER JOIN TRMZ_MEMORG_MNG_I TMMI 
+									ON TMMI.MEMORG_SN = TAI.MEMORG_SN
+								LEFT OUTER JOIN TRMM_APPL_ACPT_I TAAI 
+									ON TAAI.APPL_SN = TAI.APPL_SN 
+								LEFT OUTER JOIN TRMV_VLUN_PLAN_I TVPI 
+									ON TVPI.MLTR_ID = TAAI.MLTR_ID 
+								LEFT OUTER JOIN TRMV_VLUN_RECD_M TVRM 
+									ON TVRM.VLUN_PLAN_SN = TVPI.VLUN_PLAN_SN 
+								WHERE 1=1
+									AND TVRM.RECD_STS = 'MY'
+									AND TVPI.PLAN_STS = 'KY'
+									AND TAI.APPL_STS = 'MY'
+								<if test='srchYear != null and srchYear != ""'>
+									AND TAI.APPL_DT BETWEEN #{srchYear}||'0101' AND #{srchYear}||'1231'
+								</if>
+								<choose>
+									<when test='GRP_SN == "1"'><!-- 공단담당자 -->
+										<if test='srchMemorgSn != null and srchMemorgSn != ""'>
+										AND TAI.MEMORG_SN = #{srchMemorgSn}
+										</if>
+										<if test='srchGameCd != null and srchGameCd != ""'>
+										AND TAI.GAME_CD = #{srchGameCd}
+										</if>
+									</when>
+									<when test='GRP_SN == "2"'><!-- 체육단체 담당자 -->
+										AND TAI.MEMORG_SN = #{SESSION_MEMORG_SN}
+										AND TAI.GAME_CD = #{SESSION_GAME_CD}
+									</when>
+								</choose>
+						) A10
+						WHERE 1=1 
+						GROUP BY A10.MLTR_ID, A10.ADDM_DT, A10.APPL_SN, A10.APPL_NM, A10.VLUN_DUTY_HR, A10.BRTH_DT, A10.GAME_CD, A10.EXPR_DT, A10.RSVT_DT, A10.MEMORG_SN, A10.MEMORG_NM
+				) A100
+		) A1000
+		WHERE 1=1
+	</select>
+
+</mapper>

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kspo.web.etc.dao.PunishDAO">
+	
+	<!-- 체육요원 징계 목록 조회 -->
+	<select id="selectPunishSelectList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.etc.selectPunishSelectList*/
+		SELECT	A10.*
+				,NVL(#{currentPageNo},1) AS CURRENT_PAGE_NO
+				,NVL(#{recordCountPerPage},10) AS RECORD_COUNT_PER_PAGE
+				,NVL(#{pageSize},10) AS PAGE_SIZE
+		FROM
+				(
+				SELECT	CEIL(ROWNUM/NVL(#{recordCountPerPage},10)) AS N_PAGE_NO
+						,A.RNUM
+						,A.DSPL_SN
+						,A.MLTR_ID
+						,A.DSPL_STS
+                        ,(SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.DSPL_STS AND B.CMMN_SN = '202111220000535') DSPL_STS_NM
+                        ,(SELECT MAX(B.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I B WHERE A.MEMORG_SN = B.MEMORG_SN) MEMORG_NM
+                        ,A.PROC_STS 
+                        ,(SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.PROC_STS AND B.CMMN_SN = '31') PROC_STS_NM
+                        ,(SELECT B.CNTNT_FST FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.CTRL_MMA_CD AND B.CMMN_SN = '202111050000337') CTRL_MMA_NM
+                        ,A.APPL_NM
+                        ,A.BRTH_DT
+                        ,A.GAME_CD
+                        ,(SELECT MAX(B.CNTNT_FST) FROM TRMZ_CMMN_CODE_D B WHERE B.ALT_CODE = A.GAME_CD AND B.CMMN_SN = '202111050000341') GAME_NM
+						,TO_CHAR(A.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+						,A.REGR_ID
+						,A.DSPL_DT
+                        ,A.DSPO
+                        ,DBMS_LOB.SUBSTR(A.DSPS_REASON) DSPS_REASON
+						,A.TOTAL_RECORD_COUNT
+				FROM
+				(
+				SELECT	ROW_NUMBER () OVER (ORDER BY TDI.DSPL_SN DESC) AS RNUM
+						,COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+						,TDI.DSPL_SN
+						,TDI.MLTR_ID
+                        ,TDI.DSPL_STS
+                        ,TAI.MEMORG_SN
+                        ,TAI.PROC_STS 
+                        ,TAAI.CTRL_MMA_CD
+                        ,TAI.APPL_NM
+                        ,TAI.BRTH_DT
+                        ,TAI.GAME_CD
+						,TDI.REG_DTM
+						,TDI.REGR_ID
+						,TDI.DSPL_DT
+                        ,TDI.DSPO
+                        ,TDI.DSPS_REASON
+				FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMD_DSPL_I TDI
+				WHERE	1=1
+                AND TAAI.APPL_SN = TAI.APPL_SN
+                AND TDI.MLTR_ID = TAAI.MLTR_ID
+                AND TAI.PROC_STS IN ('AG','MM')
+                <if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+					AND TDI.DSPL_REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TDI.DSPL_REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+				</if>
+				<if test='srchGameCd != null and srchGameCd != ""'>
+					AND	TAI.GAME_CD = #{srchGameCd}
+				</if>
+				<choose>
+					<when test='srchProcSts != null and srchProcSts != ""'>
+						AND TAI.PROC_STS = #{srchProcSts}					
+					</when>
+					<otherwise>
+						AND TAI.PROC_STS IN ('AG','MM')			
+					</otherwise>
+				</choose>
+				<if test='srchDsplSts != null and srchDsplSts != ""'>
+					AND	TDI.DSPL_STS = #{srchDsplSts}
+				</if>
+				<if test='GRP_SN != null and GRP_SN != ""'>
+					<choose>
+						<when test='GRP_SN == "2"'>
+							AND TAI.MEMORG_SN = (SELECT MEMORG_SN FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})
+							AND	TDI.DSPL_STS != 'TP'			
+						</when>
+						<otherwise>
+							<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+								AND TAI.MEMORG_SN = #{srchMemOrgSn}
+							</if>	
+						</otherwise>
+					</choose>
+				</if>
+				<if test='keyword != null and keyword != ""'>
+					AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+				</if>
+				) A
+			) A10
+		WHERE	A10.N_PAGE_NO = NVL(#{currentPageNo},1)
+	</select>
+
+	<!-- 체육요원 징계 목록 엑셀 조회 -->
+	<select id="selectPunishSelectExcelList" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.etc.selectPunishSelectExcelList*/
+		SELECT	ROW_NUMBER () OVER (ORDER BY TDI.DSPL_SN DESC) AS RNUM
+				, COUNT(*)OVER() AS TOTAL_RECORD_COUNT
+				,TDI.DSPL_SN
+				,TDI.MLTR_ID
+				,TDI.DSPL_STS
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TDI.DSPL_STS AND A.CMMN_SN = '202111220000535') DSPL_STS_NM
+				,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+				,TAI.PROC_STS 
+				,CASE 	WHEN TAI.PROC_STS = 'AG' THEN '복무'
+                    	WHEN TAI.PROC_STS = 'MM' THEN '만료'
+                    	END PROC_STS_NM
+				,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAAI.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+				,TAI.APPL_NM
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'NAME',TAI.APPL_NM) B_APPL_NM
+				,TO_CHAR(TO_DATE(TAI.BRTH_DT),'YYYY-MM-DD') BRTH_DT
+				,F_GET_MASK(#{USER_DV}, #{gMenuSn},'BIRTH',TAI.BRTH_DT) B_BRTH_DT
+				,TAI.GAME_CD
+				,(SELECT MAX(A.CNTNT_FST) FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.GAME_CD AND A.CMMN_SN = '202111050000341') GAME_NM
+				,TO_CHAR(TDI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+				,TDI.REGR_ID
+                ,TO_CHAR(TO_DATE(TDI.DSPL_DT),'YYYY-MM-DD') DSPL_DT
+                ,TDI.DSPO
+                ,DBMS_LOB.SUBSTR(TDI.DSPS_REASON) DSPS_REASON
+		FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMD_DSPL_I TDI
+		WHERE	1=1
+	             AND TAAI.APPL_SN = TAI.APPL_SN
+	             AND TAAI.MLTR_ID = TDI.MLTR_ID
+	             AND TAI.PROC_STS IN ('AG','MM')
+		<if test='STD_YMD != null and STD_YMD != "" and END_YMD != null and END_YMD != ""'>
+			AND TDI.DSPL_REG_DTM <![CDATA[>=]]> TO_DATE(#{STD_YMD}||'000000','YYYYMMDDHH24MISS') AND TDI.DSPL_REG_DTM <![CDATA[<=]]> TO_DATE(#{END_YMD}||'235959','YYYYMMDDHH24MISS')
+		</if>
+		<if test='srchGameCd != null and srchGameCd != ""'>
+			AND	TAI.GAME_CD = #{srchGameCd}
+		</if>
+		<choose>
+			<when test='srchProcSts != null and srchProcSts != ""'>
+				AND TAI.PROC_STS = #{srchProcSts}					
+			</when>
+			<otherwise>
+				AND TAI.PROC_STS IN ('AG','MM')			
+			</otherwise>
+		</choose>
+		<if test='srchDsplSts != null and srchDsplSts != ""'>
+			AND	TDI.DSPL_STS = #{srchDsplSts}
+		</if>
+		<if test='GRP_SN != null and GRP_SN != ""'>
+			<choose>
+				<when test='GRP_SN == "2"'>
+					AND TAI.MEMORG_SN = (SELECT MEMORG_SN FROM TRMZ_MNGR_M WHERE MNGR_ID = #{EMP_NO})
+					AND	TDI.DSPL_STS != 'TP'			
+				</when>
+				<otherwise>
+					<if test='srchMemOrgSn != null and srchMemOrgSn != ""'>
+						AND TAI.MEMORG_SN = #{srchMemOrgSn}
+					</if>	
+				</otherwise>
+			</choose>
+		</if>
+		<if test='keyword != null and keyword != ""'>
+			AND	TAI.APPL_NM LIKE '%' || #{keyword} || '%'
+		</if>
+	</select>
+	
+	<!-- 체육요원 징계 상세 조회 -->
+	<select id="selectPunishDetail" parameterType="KSPOMap" resultType="KSPOMap">
+		/*org.kspo.web.etc.selectPunishDetail*/
+		SELECT	TDI.DSPL_SN
+				,TDI.MLTR_ID
+				,TDI.DSPL_STS
+                ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TDI.DSPL_STS AND A.CMMN_SN = '202111220000535') DSPL_STS_NM
+                ,(SELECT MAX(A.MEMORG_NM) FROM TRMZ_MEMORG_MNG_I A WHERE A.MEMORG_SN = TAI.MEMORG_SN) MEMORG_NM
+                ,TAI.PROC_STS 
+                ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAI.PROC_STS AND A.CMMN_SN = '31') PROC_STS_NM
+                ,(SELECT A.CNTNT_FST FROM TRMZ_CMMN_CODE_D A WHERE A.ALT_CODE = TAAI.CTRL_MMA_CD AND A.CMMN_SN = '202111050000337') CTRL_MMA_NM
+                , TAI.APPL_NM
+                , TO_CHAR(TO_DATE(TAI.BRTH_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS BRTH_DT
+                , TAI.ADDR 
+                , TAI.ADDR_DTL 
+                , TAI.EMAIL EMAIL 
+                , F_GET_DEC_CP_NO(TAI.CP_NO) CP_NO
+                , TAI.MEMORG_SN
+                , TAI.APPL_STS
+                , TAI.PROC_STS 
+                , (SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAI.GAME_CD AND D10.CMMN_SN = '202111050000341') GAME_CD_NM
+                , TAI.TEAM_NM
+                ,(SELECT D10.CNTNT_FST FROM TRMZ_CMMN_CODE_D D10 WHERE D10.ALT_CODE = TAAI.CTRL_MMA_CD AND D10.CMMN_SN = '202111050000337') CTRL_MMA_CD
+				,TO_CHAR(TDI.REG_DTM,'YYYY-MM-DD') AS REG_DTM
+				,TDI.REGR_ID
+				,TDI.DSPL_DT
+               	,TDI.DSPO
+               	,TDI.DSPOVIOL
+               	,TDI.ATCH_FILE_ID
+               	,DBMS_LOB.SUBSTR(TDI.DSPS_REASON) DSPS_REASON
+               	,DBMS_LOB.SUBSTR(TDI.FLLWACT) FLLWACT
+               	,DBMS_LOB.SUBSTR(TDI.RMK) RMK
+               	, CASE WHEN TDI.UPDR_ID IS NOT NULL THEN (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TDI.UPDR_ID ) ELSE (SELECT A.MNGR_NM FROM TRMZ_MNGR_M A WHERE A.MNGR_ID = TDI.REGR_ID ) END UPDR_NM
+       			, CASE WHEN TDI.UPDT_DTM IS NOT NULL THEN TO_CHAR(TDI.UPDT_DTM,'YYYY-MM-DD') ELSE TO_CHAR(TDI.REG_DTM,'YYYY-MM-DD') END UPDT_DT
+		FROM	TRMM_APPL_I TAI, TRMM_APPL_ACPT_I TAAI, TRMD_DSPL_I TDI
+		WHERE	1=1
+        AND 	TAAI.APPL_SN = TAI.APPL_SN
+        AND 	TAAI.MLTR_ID = TDI.MLTR_ID
+      	AND 	TDI.DSPL_SN = #{DSPL_SN}
+	</select>
+	
+	<!-- 체육요원 징계 insert -->
+	<insert id="insertPunish" parameterType="KSPOMap">
+		<selectKey resultType="String" keyProperty="DSPL_SN" order="BEFORE">
+			SELECT F_GET_SEQ('TRMD_DSPL_I') FROM DUAL
+		</selectKey>
+		/*org.kspo.web.etc.insertPunish*/
+		INSERT INTO TRMD_DSPL_I(
+			DSPL_SN
+			,MLTR_ID
+			,DSPL_STS
+			,DSPL_DT
+			,DSPOVIOL
+			,DSPO
+			,DSPS_REASON
+			,FLLWACT
+			,ATCH_FILE_ID
+			,RMK
+			,DSPL_UPD_DTM
+			,DSPL_REG_DTM
+			,COP_ADMS_ID
+			,REG_DTM
+			,REGR_ID
+		) VALUES (
+			#{DSPL_SN}
+			,#{MLTR_ID}
+			,#{DSPL_STS, jdbcType=VARCHAR}
+            ,#{DSPL_DT, jdbcType=VARCHAR}
+            ,#{DSPOVIOL, jdbcType=VARCHAR}
+            ,#{DSPO, jdbcType=VARCHAR}
+            ,#{DSPS_REASON, jdbcType=VARCHAR}
+            ,#{FLLWACT, jdbcType=VARCHAR}
+            ,#{ATCH_FILE_ID, jdbcType=VARCHAR}
+            ,#{RMK, jdbcType=VARCHAR}
+            ,SYSDATE
+            ,SYSDATE
+            ,#{EMP_NO}
+            ,SYSDATE
+			,#{EMP_NO}
+		)
+	</insert>
+	
+	<!-- 체육요원 징계 update -->
+	<update id="updatePunish" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updatePunish*/
+		UPDATE	TRMD_DSPL_I
+		SET		DSPL_STS = #{DSPL_STS, jdbcType=VARCHAR}
+				,DSPL_DT = #{DSPL_DT, jdbcType=VARCHAR}
+				,DSPOVIOL = #{DSPOVIOL, jdbcType=VARCHAR}
+				,DSPO = #{DSPO, jdbcType=VARCHAR}
+				,DSPS_REASON = #{DSPS_REASON, jdbcType=VARCHAR}
+				,FLLWACT = #{FLLWACT, jdbcType=VARCHAR}
+				,RMK = #{RMK, jdbcType=VARCHAR}
+				,DSPL_UPD_DTM = SYSDATE
+				,ATCH_FILE_ID = #{ATCH_FILE_ID, jdbcType=VARCHAR}
+				,UPD_ADMS_ID = #{EMP_NO}
+				,UPDT_DTM = SYSDATE
+				,UPDR_ID = #{EMP_NO}
+		WHERE	DSPL_SN = #{DSPL_SN}
+	</update>
+
+	<!-- 체육요원 징계 delete -->
+	<delete id="deletePunishJs" parameterType="KSPOMap">
+		/*org.kspo.web.etc.deletePunishJs*/
+		DELETE 
+		FROM	TRMD_DSPL_I
+		WHERE	DSPL_SN = #{DSPL_SN}
+	</delete>
+
+	<!-- 체육요원 징계 확정일시 복무만료일 +5연장 -->
+	<update id="updateApplExprDt" parameterType="KSPOMap">
+		/*org.kspo.web.etc.updateApplExprDt*/
+		UPDATE	TRMM_APPL_I
+		SET		EXPR_DT = TO_CHAR(TO_DATE(#{EXPR_DT}, 'YYYYMMDD') + INTERVAL '5' DAY , 'YYYYMMDD')
+		WHERE	APPL_SN = ( SELECT 	A.APPL_SN
+							FROM	TRMM_APPL_ACPT_I A
+							WHERE 	A.MLTR_ID = #{MLTR_ID}
+						  )
+	</update>
+	
+</mapper>
